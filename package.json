@@ -1,76 +1,105 @@
 {
-  "$schema": "./@types/schema/package/index.json",
+  "name": "flexalon-tools",
+  "version": "0.5.2",
   "package_version": 2,
-  "name": "vue3-template",
-  "version": "1.0.0",
-  "author": "Cocos Creator",
+  "description": "Flexalon unified extension: runtime TypeScript components, Unity-style inspectors and Vietnamese Guide for Cocos Creator >=3.8.2",
   "editor": ">=3.8.2",
-  "scripts": {
-    "preinstall": "node ./scripts/preinstall.js",
-    "build": "tsc"
-  },
-  "description": "i18n:vue3-template.description",
   "main": "./dist/main.js",
-  "dependencies": {
-    "fs-extra": "^10.0.0",
-    "vue": "^3.1.4"
-  },
-  "devDependencies": {
-    "@cocos/creator-types": "^3.8.2",
-    "@types/fs-extra": "^9.0.5",
-    "@types/node": "^18.17.1",
-    "typescript": "^6.0.3"
-  },
-  "panels": {
-    "default": {
-      "title": "vue3-template Default Panel",
-      "type": "dockable",
-      "main": "dist/panels/default",
-      "size": {
-        "min-width": 400,
-        "min-height": 300,
-        "width": 1024,
-        "height": 600
-      }
-    }
-  },
   "contributions": {
-    "asset-db": {
-      "mount": {
-        "path": "./assets",
-        "readonly": true
-      }
+    "scene": {
+      "script": "./dist/scene.js"
     },
     "menu": [
       {
-        "path": "i18n:menu.panel/vue3-template",
-        "label": "i18n:vue3-template.open_panel",
-        "message": "open-panel"
+        "path": "i18n:menu.extension/Flexalon",
+        "label": "Inspect Flexalon Layouts",
+        "message": "inspect-layouts"
       },
       {
-        "path": "i18n:menu.develop/vue3-template",
-        "label": "i18n:vue3-template.send_to_panel",
-        "message": "send-to-panel"
+        "path": "i18n:menu.extension/Flexalon",
+        "label": "Refresh Flexalon Layouts",
+        "message": "refresh-layouts"
+      },
+      {
+        "path": "i18n:menu.extension/Flexalon",
+        "label": "Open Flexalon Guide",
+        "message": "open-guide"
       }
     ],
     "messages": {
-      "open-panel": {
+      "inspect-layouts": {
         "methods": [
-          "openPanel"
+          "inspectLayouts"
         ]
       },
-      "send-to-panel": {
+      "refresh-layouts": {
         "methods": [
-          "default.hello"
+          "refreshLayouts"
+        ]
+      },
+      "open-guide": {
+        "methods": [
+          "openGuide"
         ]
       }
     },
     "inspector": {
       "section": {
         "node": {
-          "LocalizedText": "./dist/contributions/inspector/comp-localized.js"
+          "Flexalon.FlexalonObject": "./dist/contributions/inspector/FlexalonObject.js",
+          "Flexalon.FlexalonFlexibleLayout": "./dist/contributions/inspector/FlexalonFlexibleLayout.js",
+          "Flexalon.FlexalonGridLayout": "./dist/contributions/inspector/FlexalonGridLayout.js",
+          "Flexalon.FlexalonCircleLayout": "./dist/contributions/inspector/FlexalonCircleLayout.js",
+          "Flexalon.FlexalonAlignLayout": "./dist/contributions/inspector/FlexalonAlignLayout.js",
+          "Flexalon.FlexalonCurveLayout": "./dist/contributions/inspector/FlexalonCurveLayout.js",
+          "Flexalon.FlexalonRandomLayout": "./dist/contributions/inspector/FlexalonRandomLayout.js",
+          "Flexalon.FlexalonShapeLayout": "./dist/contributions/inspector/FlexalonShapeLayout.js",
+          "Flexalon.FlexalonGridCell": "./dist/contributions/inspector/FlexalonGridCell.js",
+          "Flexalon.FlexalonConstraint": "./dist/contributions/inspector/FlexalonConstraint.js",
+          "Flexalon.FlexalonRandomModifier": "./dist/contributions/inspector/FlexalonRandomModifier.js",
+          "Flexalon.FlexalonCloner": "./dist/contributions/inspector/FlexalonCloner.js",
+          "Flexalon.FlexalonAspectRatioAdapter": "./dist/contributions/inspector/FlexalonAspectRatioAdapter.js",
+          "Flexalon.FlexalonCurveAnimator": "./dist/contributions/inspector/FlexalonCurveAnimator.js",
+          "Flexalon.FlexalonLerpAnimator": "./dist/contributions/inspector/FlexalonLerpAnimator.js",
+          "Flexalon.FlexalonDragTarget": "./dist/contributions/inspector/FlexalonDragTarget.js",
+          "Flexalon.FlexalonInteractable": "./dist/contributions/inspector/FlexalonInteractable.js",
+          "Flexalon.Flexalon": "./dist/contributions/inspector/Flexalon.js"
         }
       }
+    },
+    "asset-db": {
+      "mount": {
+        "path": "./assets",
+        "readonly": true
+      }
     }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-inspectors.cjs",
+    "copy-inspectors": "node scripts/copy-inspectors.cjs",
+    "verify": "node scripts/verify-package.cjs",
+    "release": "npm run build && npm run verify && node scripts/package-release.cjs && node scripts/verify-release.cjs",
+    "release:check": "node scripts/verify-release.cjs",
+    "release:files": "node scripts/release-manifest.cjs"
+  },
+  "panels": {
+    "guide": {
+      "title": "Flexalon Guide — Hướng dẫn component",
+      "type": "dockable",
+      "main": "./dist/panels/guide.js",
+      "icon": "./static/guide-icon.png",
+      "size": {
+        "width": 930,
+        "height": 740,
+        "min-width": 300,
+        "min-height": 380
+      }
+    }
+  },
+  "devDependencies": {
+    "typescript": "5.8.3"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

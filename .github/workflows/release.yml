@@ -1,0 +1,61 @@
+name: Build and publish Flexalon extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag, e.g. v0.5.2'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - name: Checkout tagged code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          persist-credentials: false
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install build dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Match tag to extension version
+        run: node scripts/check-version.cjs "$RELEASE_TAG"
+
+      - name: Build, verify, and create ZIP
+        run: npm run release
+
+      - name: Verify release ZIP integrity
+        run: npm run release:check
+
+      - name: Upload release ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="release/flexalon-tools-${RELEASE_TAG}.zip"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$archive" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$archive" \
+              --verify-tag \
+              --title "Flexalon Cocos ${RELEASE_TAG}" \
+              --generate-notes
+          fi

@@ -1,18 +1,1 @@
-{
-  "extends": "./base.tsconfig.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./source",
-    "types": [
-      "node",
-      "@cocos/creator-types/editor",
-      "@cocos/creator-types/engine"
-    ]
-  },
-  "include": [
-    "./source/**/*"
-  ],
-  "exclude": [
-    "./assets/**/*"
-  ]
-}
+{"compilerOptions":{"target":"ES2020","module":"commonjs","lib":["ES2020","DOM"],"strict":true,"skipLibCheck":true,"outDir":"dist","rootDir":"src"},"include":["src/**/*.ts"]}

@@ -1,0 +1,70 @@
+:host{display:block;width:100%;height:100%;min-width:270px;background:#10141d;color:#e5ecf5;font:13px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+*{box-sizing:border-box}
+.fl-guide-app{height:100%;width:100%;min-height:280px;overflow:hidden;--muted:#a7b6c9;--line:#2a3547;--panel:#171f2c;--panelAlt:#121a26;--accent:#6cc4fd;--accentSoft:rgba(108,196,253,.12);--cream:#ebf4ff;}
+.fl-guide-app button,.fl-guide-app input{font:inherit}
+.guide-layout{height:100%;display:flex;flex-direction:column;overflow:hidden}
+.guide-header{height:60px;padding:11px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(110deg,#192a3d,#101925);border-bottom:1px solid var(--line);flex:0 0 auto;}
+.guide-brand{display:flex;align-items:center;gap:12px;min-width:0}
+.guide-logo{width:35px;height:35px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#3fa6da,#8d6cf3);color:#fff;font-size:22px;flex:0 0 auto;box-shadow:0 4px 18px #348ae244;}
+.guide-brand-name{font-size:16px;font-weight:750;line-height:1.15;white-space:nowrap;letter-spacing:.3px}
+.guide-brand-caption{font-size:11px;color:var(--muted);white-space:nowrap}
+.guide-version{font-size:10px;color:#bcdcf5;background:#20354d;padding:4px 9px;border:1px solid #376080;border-radius:30px;white-space:nowrap;}
+.guide-main{display:flex;flex:1;min-height:0;}
+.guide-sidebar{width:236px;flex:0 0 236px;border-right:1px solid var(--line);background:#121924;display:flex;flex-direction:column;min-height:0}
+.guide-search-wrap{padding:15px 13px 9px;position:relative;}
+.guide-search{width:100%;height:35px;outline:none;background:#202b3b;border:1px solid #334255;border-radius:9px;color:#eff7ff;padding:0 12px 0 32px;transition:border-color .15s}
+.guide-search:focus{border-color:#53adf2;box-shadow:0 0 0 2px rgba(83,173,242,.12)}
+.guide-search::placeholder{color:#8b9bb1}
+.guide-search-icon{position:absolute;left:23px;top:23px;color:#8d9caf;pointer-events:none}
+.guide-nav{overflow:auto;flex:1;padding:0 8px 16px;scrollbar-width:thin;scrollbar-color:#41556c transparent}
+.guide-group{margin:15px 5px 5px;padding:0 6px;color:#8fa1b7;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:800}
+.guide-item{width:100%;display:flex;align-items:center;gap:10px;border:1px solid transparent;background:transparent;color:#b5c5d9;border-radius:9px;margin:2px 0;padding:9px 10px;text-align:left;cursor:pointer;min-height:36px;}
+.guide-item:hover{background:#1e2a39;color:#f4faff}
+.guide-item.active{background:#233c57;border-color:#34648a;color:#e2f5ff}
+.guide-item-icon{width:21px;text-align:center;color:#87cef6;font-size:16px;flex:0 0 auto}
+.guide-item-label{font-size:12px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.guide-count{margin:0 13px 13px;padding:9px 10px;border:1px solid #273447;border-radius:8px;color:#92a8c1;font-size:11px}
+.guide-empty{padding:15px;color:var(--muted);font-size:12px}
+.guide-content{overflow-y:auto;overflow-x:hidden;flex:1;min-width:0;scrollbar-width:thin;scrollbar-color:#3b566b transparent;background:radial-gradient(circle at 90% -100px,#12345280 0,transparent 430px),#111722}
+.guide-page{max-width:1040px;margin:0 auto;padding:28px clamp(18px,4.5vw,52px) 70px;}
+.guide-eyebrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#82badb;font-weight:700}
+.guide-time{letter-spacing:0;text-transform:none;color:#a2adbd;border:1px solid #3b4554;padding:2px 7px;border-radius:5px}
+.guide-h1{font-size:clamp(25px,3vw,37px);font-weight:780;line-height:1.2;color:#f3f8ff;letter-spacing:-.03em;margin:10px 0 8px}
+.guide-tagline{font-size:15px;color:#b9cbde;margin:0 0 18px}
+.guide-intro{font-size:13px;line-height:1.8;color:#bed0e4;margin:0 0 20px;max-width:790px}
+.guide-diagram{background:linear-gradient(155deg,#202d3e,#182334);border:1px solid #324558;border-radius:15px;overflow:hidden;position:relative;margin:0 0 24px;}
+.guide-diagram .guide-diagram-caption{font-size:11px;color:#b0c3d7;padding:0 17px 13px;display:flex;align-items:center;gap:7px}
+.guide-diagram svg{width:100%;height:auto;max-height:290px;min-height:125px;display:block}
+.guide-diagram circle,.guide-diagram rect,.guide-diagram path,.guide-diagram line{vector-effect:non-scaling-stroke}
+.guide-section{margin-top:26px;scroll-margin-top:18px}
+.guide-section-head{display:flex;gap:9px;align-items:center;margin:0 0 11px;color:#eff7ff;font-size:15px;font-weight:700}
+.guide-section-head:before{content:'';height:17px;width:3px;border-radius:3px;background:#65baf0}
+.guide-section-copy{font-size:13px;color:#b9c8d8;margin:0}
+.guide-card{background:var(--panel);border:1px solid #304056;border-radius:12px;padding:15px 18px}
+.guide-tree-card{background:#101a26;border:1px solid #304359;border-radius:11px;overflow:hidden}
+.guide-tree-head{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:#1d2b3e;border-bottom:1px solid #344459;color:#aac7da;font-size:11px;font-weight:700}
+.guide-copy,.guide-nav-btn{cursor:pointer;background:#20354a;border:1px solid #395772;color:#d4eaff;border-radius:7px;padding:5px 10px;font-size:11px;}
+.guide-copy:hover,.guide-nav-btn:hover{background:#294662;color:white}
+.guide-tree{font-family:Consolas,'Cascadia Mono',Menlo,monospace;white-space:pre;overflow:auto;color:#b5dfc9;font-size:12px;line-height:1.9;padding:16px;margin:0;}
+.guide-steps{counter-reset:guide-step;display:grid;gap:10px;padding:0;margin:0;list-style:none}
+.guide-steps li{counter-increment:guide-step;display:flex;gap:11px;align-items:flex-start;color:#ccdaeb;padding:11px 13px;border-radius:10px;background:#182331;border:1px solid #2a3b4f;line-height:1.65}
+.guide-steps li::before{content:counter(guide-step);width:23px;height:23px;flex:0 0 23px;border-radius:7px;display:grid;place-items:center;background:#275574;color:#bfe8ff;font-size:11px;font-weight:800;margin-top:0px}
+.guide-table-wrap{overflow:auto;border:1px solid #334458;border-radius:11px;background:#192334}
+.guide-table{width:100%;border-collapse:collapse;text-align:left;font-size:12px;min-width:450px;line-height:1.6}
+.guide-table th{background:#223148;color:#a5d9fc;padding:11px 13px;font-size:11px;letter-spacing:.02em;font-weight:700}
+.guide-table td{border-top:1px solid #2a3a4f;padding:10px 13px;vertical-align:top;color:#c0d0df}
+.guide-table td:first-child{color:#e2edfa;font-weight:650;font-family:Consolas,monospace;font-size:11px}
+.guide-table td:nth-child(2){color:#9addca;white-space:normal}
+.guide-note{display:flex;align-items:flex-start;gap:9px;color:#c7d4e1;background:#162635;border:1px solid #305169;border-radius:10px;padding:12px 14px;margin:0 0 8px;font-size:12px;line-height:1.65}
+.guide-note-icon{color:#f3c878;font-size:15px;flex:0 0 auto}
+.guide-challenge{display:flex;align-items:flex-start;gap:12px;background:linear-gradient(115deg,#153b4a,#223449);border:1px solid #387b89;padding:17px;border-radius:11px;color:#d9f8f3;line-height:1.7}
+.guide-challenge-icon{font-size:23px}
+.guide-inline-navigation{border-top:1px solid var(--line);margin-top:33px;padding-top:18px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.guide-nav-btn{padding:8px 13px;font-size:12px}
+.guide-related{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 0}
+.guide-related button{background:#1b293b;color:#a9d2ec;border:1px solid #2d4a60;border-radius:7px;padding:5px 9px;cursor:pointer;font-size:11px}
+.guide-related button:hover{background:#27435a}
+.guide-toast{position:absolute;right:18px;bottom:18px;background:#246552;color:#fff;padding:10px 15px;border:1px solid #55a98a;border-radius:9px;pointer-events:none;box-shadow:0 8px 30px #0008;font-size:12px;z-index:10}
+.guide-footer{font-size:11px;color:#8096ac;margin-top:25px;border-top:1px solid #263449;padding-top:13px;}
+@media(max-width:690px){.guide-sidebar{width:172px;flex-basis:172px}.guide-item{padding:8px 5px;gap:5px}.guide-header{padding:10px 13px}.guide-page{padding:20px 15px 50px}.guide-brand-name{font-size:14px}.guide-version{display:none}.guide-tree{font-size:10px}}
+@media(max-width:420px){.guide-sidebar{width:52px;flex-basis:52px}.guide-search-wrap{padding:8px 4px}.guide-search{padding:4px;width:100%}.guide-search-icon,.guide-group,.guide-item-label,.guide-count{display:none}.guide-item{justify-content:center}.guide-item-icon{font-size:17px}.guide-page{padding:16px 12px 36px}}
