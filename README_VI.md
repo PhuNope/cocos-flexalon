@@ -116,3 +116,13 @@ Node vẽ tạm của Gizmos không tham gia layout. Chưa hỗ trợ Circle XZ/
 - Drop lên node có FlexalonDragTarget để chuyển parent. Mặc định thả bên ngoài parent mà không có target sẽ giữ dưới Canvas; thả bên trong/Cancel trả về parent cũ.
 - UITransform của node được kéo là bắt buộc để nhận sự kiện touch/mouse. Tính năng này chỉ hỗ trợ UI 2D.
 - Đây là bản dev thử nghiệm: chưa merge main / chưa phát hành Release.
+
+## Dev: Curve Animator Gizmos, Pause và reorder trong layout
+
+- **Curve Animator** có `Show Gizmos`: đường Bézier, tay nắm và marker `Preview Progress` (0..1). Đường được vẽ theo hệ tọa độ **parent** vì `p0..p3` là vị trí local của parent; object chạy trên curve không kéo đường Gizmos chạy theo.
+- `Paused` ngừng update của Curve Animator ở cả Editor và runtime. `Preview In Editor` mặc định **tắt** để không tự chạy khi chỉnh scene; bật lên mới chạy thử trong Editor. `Pause()`, `Resume()`, `Restart()` dùng được bằng script. `Preview Progress` chỉ dịch marker gizmo, không dịch chuyển object.
+- Khi `FlexalonInteractable` bắt đầu kéo, Curve Animator và Lerp Animator tạm dừng; thả/cancel thì tiếp tục.
+- **Reorder Within Layout** (bật mặc định) ở Interactable: khi thả **trong vùng parent layout cũ**, node được đưa lại đúng parent và thay đổi `siblingIndex` theo vị trí thả, rồi layout sắp xếp lại. Hỗ trợ kể cả `Detach While Dragging`; drag ra ngoài parent hoặc sang `Drag Target` vẫn theo logic cũ. Đây là **reorder khi thả**, chưa có placeholder hoặc đổi thứ tự liên tục ngay trong lúc đang kéo.
+- Nếu vừa có Curve Animator vừa có Flexalon Layout cùng điều khiển một Node, cả hai đều có thể ghi `node.position`; nên chọn một hệ điều khiển chuyển động hoặc cho child đó `Skip Layout`.
+
+Bản dev chưa merge `main` hoặc phát hành Release.

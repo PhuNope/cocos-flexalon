@@ -1,7 +1,8 @@
-import { _decorator, Canvas, Node, EventTouch, UITransform, Vec3 } from 'cc';
+import { _decorator, Canvas, CCObject, Node, EventTouch, UITransform, Vec3 } from 'cc';
 import { FlexalonComponent } from '../Core/FlexalonComponent';
 import { FlexalonObject } from '../Core/FlexalonObject';
 import { FlexalonLerpAnimator } from '../Animators/FlexalonLerpAnimator';
+import { FlexalonCurveAnimator } from '../Animators/FlexalonCurveAnimator';
 import { FlexalonDragTarget } from './FlexalonDragTarget';
 const {ccclass,property,menu}= _decorator;
 
@@ -12,6 +13,8 @@ export class FlexalonInteractable extends FlexalonComponent {
     @property({tooltip: 'Cho phép kéo thả Node UI bằng chuột hoặc touch.',visible:true}) public dragEnabled=true;
     @property({tooltip: 'Chuyển tạm child lên Canvas khi kéo để thoát Mask/ScrollView và nested layout.',visible:true}) public detachWhileDragging=true;
     @property({tooltip: 'Khi thả bên ngoài parent và không có Drop Target, giữ Node dưới Canvas. Tắt để trả về parent cũ.',visible:true}) public keepOutsideOnRelease=true;
+
+    @property({tooltip: 'Kéo và thả vào layout cũ sẽ đổi sibling order (Flexible/Grid/Shape/...)',visible:true}) public reorderWithinLayout=true;
 
     private dragging=false;
     private moved=false;
@@ -65,6 +68,7 @@ export class FlexalonInteractable extends FlexalonComponent {
         this.originalSkip=obj?.skipLayout??false;
         if(obj)obj.skipLayout=true;
         this.node.getComponent(FlexalonLerpAnimator)?.SuspendForDrag();
+        this.node.getComponent(FlexalonCurveAnimator)?.SuspendForDrag();
         e.propagationStopped=true;
     }
     private moveDrag(e:EventTouch):void {
@@ -115,22 +119,75 @@ export class FlexalonInteractable extends FlexalonComponent {
         };
         return visit(root);
     }
+    /** Reordering is a sibling-index operation, not a change to local position:
+     * the layout owns item positions and recomputes them from child order.
+     * Draw/drop coordinates are UI/world coordinates, so scaled/rotated parents
+     * do not need separate screen-axis heuristics.
+     */
+    private reorderAt(parent:Node,point:Vec3):boolean {
+        if(!parent.getComponent('Flexalon.LayoutBase'))return false;
+        const siblings=parent.children.filter(c=>c!==this.node &&
+            (c.hideFlags & CCObject.Flags.DontSave)===0 && c.active &&
+            !c.getComponent(FlexalonObject)?.skipLayout &&
+            !c.getComponent(FlexalonInteractable)?.IsDragging);
+        if(!siblings.length)return false;
+        const center=(n:Node):Vec3=>{
+            const ui=n.getComponent(UITransform);
+            const p=new Vec3(ui?(0.5-ui.anchorX)*ui.width:0,
+                             ui?(0.5-ui.anchorY)*ui.height:0,0);
+            const world=new Vec3();Vec3.transformMat4(world,p,n.worldMatrix);
+            return world;
+        };
+        const centers=siblings.map(center);
+        let nearest=0,best=Infinity;
+        for(let i=0;i<centers.length;i++){
+            const dx=point.x-centers[i].x,dy=point.y-centers[i].y;
+            const distance=dx*dx+dy*dy;
+            if(distance<best){best=distance;nearest=i;}
+        }
+        const pivot=centers[nearest];
+        const direction=centers[Math.min(nearest+1,centers.length-1)];
+        const previous=centers[Math.max(0,nearest-1)];
+        let vx=direction.x-pivot.x,vy=direction.y-pivot.y;
+        if(vx*vx+vy*vy<0.001){vx=pivot.x-previous.x;vy=pivot.y-previous.y;}
+        const after=(point.x-pivot.x)*vx+(point.y-pivot.y)*vy>0;
+        // Read sibling index before reparenting; a dragged child may temporarily
+        // be under Canvas rather than its original Flexalon layout.
+        if(this.node.parent!==parent)this.node.setParent(parent,true);
+        const neighbour=siblings[nearest];
+        const from=this.node.getSiblingIndex();
+        let to=neighbour.getSiblingIndex()+(after?1:0);
+        if(from<to)to--;
+        this.node.setSiblingIndex(to);
+        return true;
+    }
     private finishDrag(e:EventTouch|null,allowDrop:boolean):void {
         if(!this.dragging)return;
         const origin=this.originalParent;
         const point=e?this.pointer(e):null;
         const target=allowDrop && this.moved && point?this.findDropTarget(point):null;
-        if(target) {
+        const inOrigin=!!(point && origin && origin.getComponent(UITransform) && this.containsPointer(origin,point));
+        // Explicit targets on other nodes take priority; the origin's own drop
+        // target must not swallow a simple reorder within the same layout.
+        if(target && target.node!==origin) {
+            target.onDrop(this.node);
+        } else if(allowDrop && this.moved && point && origin && inOrigin &&
+                  this.reorderWithinLayout && this.reorderAt(origin,point)) {
+            // Order is now persisted using Node.setSiblingIndex().
+        } else if(target) {
             target.onDrop(this.node);
         } else {
-            const outside=!!(point && origin && origin.getComponent(UITransform) && !this.containsPointer(origin,point));
+            const outside=!!(point && origin && origin.getComponent(UITransform) && !inOrigin);
             const keep=this.detached && this.moved && allowDrop &&
                 this.keepOutsideOnRelease && outside;
             if(!keep && origin && this.node.parent!==origin) {
                 this.node.setParent(origin,true);
                 this.node.setSiblingIndex(Math.min(this.originalIndex,origin.children.length-1));
             }
-            if(!keep && !target && !this.moved && origin) {
+            if(!allowDrop && origin) {
+                if(this.node.parent===origin)this.node.setSiblingIndex(this.originalIndex);
+                this.node.setWorldPosition(this.startWorld);
+            } else if(!this.moved && origin) {
                 this.node.setWorldPosition(this.startWorld);
             }
         }
@@ -138,6 +195,7 @@ export class FlexalonInteractable extends FlexalonComponent {
         const obj=this.node.getComponent(FlexalonObject);
         if(obj)obj.skipLayout=this.originalSkip;
         this.node.getComponent(FlexalonLerpAnimator)?.ResumeAfterDrag();
+        this.node.getComponent(FlexalonCurveAnimator)?.ResumeAfterDrag();
         this.originalParent=null;this.touchId=null;this.detached=false;
         if(e)e.propagationStopped=true;
     }

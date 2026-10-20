@@ -105,7 +105,7 @@ const configs = {
   },
   FlexalonCurveAnimator: {
     title:'Curve Animator',subtitle:'Chuyển động trên đường Bézier',kind:'component',
-    sections:[{title:'Curve',icon:'⌁',fields:['p0','p1','p2','p3']},{title:'Playback',icon:'▶',fields:['duration','loop']}]
+    sections:[{title:'Curve',icon:'⌁',fields:['p0','p1','p2','p3']},{title:'Playback',icon:'▶',fields:['duration','loop','paused','previewInEditor','previewProgress']},{title:'Scene Gizmos',icon:'◈',fields:['showGizmos']}]
   },
   FlexalonLerpAnimator: {
     title:'Lerp Animator',subtitle:'Chuyển động mượt đến vị trí layout',kind:'component',
@@ -117,7 +117,7 @@ const configs = {
   },
   FlexalonInteractable: {
     title:'Interactable',subtitle:'Tương tác chuột / kéo thả',kind:'component',
-    sections:[{title:'Interaction',icon:'✥',fields:['dragEnabled','detachWhileDragging','keepOutsideOnRelease']}]
+    sections:[{title:'Interaction',icon:'✥',fields:['dragEnabled','detachWhileDragging','keepOutsideOnRelease','reorderWithinLayout']}]
   },
   Flexalon: {
     title:'Flexalon Manager',subtitle:'Tùy chọn cập nhật hệ thống',kind:'component',
