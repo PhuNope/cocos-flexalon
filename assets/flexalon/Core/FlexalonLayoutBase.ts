@@ -8,6 +8,7 @@ import { defaultAdapter } from './FlexalonAdapter';
 import { FlexalonMath } from './FlexalonMath';
 import { FlexalonModifier } from './FlexalonModifier';
 import { FlexalonLerpAnimator } from '../Animators/FlexalonLerpAnimator';
+import { FlexalonCurveAnimator } from '../Animators/FlexalonCurveAnimator';
 import { FlexalonInteractable } from '../Interaction/FlexalonInteractable';
 import { syncGizmosSelection, flexalonGizmos, rect, drawLocalLineList, quadInParent, boundsColor, paddingColor, marginColor } from './FlexalonGizmos';
 const { ccclass, property, executeInEditMode, requireComponent } = _decorator;
@@ -41,7 +42,8 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         if ((child.hideFlags & CCObject.Flags.DontSave) !== 0 ||
           (!child.active && !this.includeInactive)) continue;
         const obj = child.getComponent(FlexalonObject);
-        if (obj?.skipLayout || child.getComponent(FlexalonInteractable)?.IsDragging) continue;
+        if (obj?.skipLayout || child.getComponent(FlexalonInteractable)?.IsDragging ||
+          (child.getComponent(FlexalonCurveAnimator)?.enabledInHierarchy && child.getComponent(FlexalonCurveAnimator)?.ignoreParentLayout)) continue;
         const pts = quadInParent(this.node, child);
         if (!pts) continue;
         g.beginColor(this.node, boundsColor);
@@ -126,7 +128,8 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         return new Vec3(x+(this.paddingLeft-this.paddingRight)*0.5, y+(this.paddingBottom-this.paddingTop)*0.5, (this.paddingBack-this.paddingFront)*0.5);
     }
     protected items(available: Vec3, measuringIntrinsic = false): Item[] {
-        return this.node.children.filter(n=>(n.hideFlags & CCObject.Flags.DontSave)===0).filter(n=>this.includeInactive || n.active).filter(n=>!n.getComponent(FlexalonObject)?.skipLayout && !n.getComponent(FlexalonInteractable)?.IsDragging).map(n=>this.measureItem(n,available,measuringIntrinsic));
+        return this.node.children.filter(n=>(n.hideFlags & CCObject.Flags.DontSave)===0).filter(n=>this.includeInactive || n.active).filter(n=>!n.getComponent(FlexalonObject)?.skipLayout && !n.getComponent(FlexalonInteractable)?.IsDragging &&
+            !(n.getComponent(FlexalonCurveAnimator)?.enabledInHierarchy && n.getComponent(FlexalonCurveAnimator)?.ignoreParentLayout)).map(n=>this.measureItem(n,available,measuringIntrinsic));
     }
     protected measureItem(node: Node, available: Vec3, measuringIntrinsic = false): Item {
         const obj=node.getComponent(FlexalonObject);

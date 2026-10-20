@@ -105,8 +105,8 @@ const configs = {
   },
   FlexalonCurveAnimator: {
     title:'Curve Animator',subtitle:'Bézier · Pause và Preview trong Editor',kind:'component',
-    sections:[{title:'Curve',icon:'⌁',fields:['p0','p1','p2','p3']},{title:'Playback · Pause / Preview',icon:'▶',fields:['duration','loop','paused','previewInEditor','previewProgress']},{title:'Scene Gizmos',icon:'◈',fields:['showGizmos']}],
-    note: 'Paused dừng animation. Preview In Editor mặc định tắt. Nếu không thấy các tùy chọn mới, hãy xóa extension cũ và khởi động lại Cocos Creator.'
+    sections:[{title:'Curve',icon:'⌁',fields:['p0','p1','p2','p3']},{title:'Start Position',icon:'◎',fields:['useStartPosition',{key:'startPosition',when:'customCurveStart'},'startProgress','snapToStartInEditor','ignoreParentLayout']},{title:'Playback · Pause / Preview',icon:'▶',fields:['duration','loop','paused','previewInEditor','previewProgress']},{title:'Scene Gizmos',icon:'◈',fields:['showGizmos']}],
+    note: 'Use Start Position dịch cả Bézier để P0 ở đúng Start Position (local parent). Start Progress chọn phần đường bắt đầu. Snap To Start In Editor đặt Node vào vị trí khởi đầu khi không preview. Với Layout cha, bật Ignore Parent Layout để tránh ghi đè vị trí.'
   },
   FlexalonLerpAnimator: {
     title:'Lerp Animator',subtitle:'Chuyển động mượt đến vị trí layout',kind:'component',
@@ -139,6 +139,7 @@ const rule = {
     spacingEven: (d) => Number(valueOf(d,'spacingType')) === 1,
     polygon: (d) => Number(valueOf(d,'shape')) === 2,
     notRectangle: (d) => Number(valueOf(d,'shape')) !== 0,
+    customCurveStart: (d) => valueOf(d,'useStartPosition') === true,
 };
 const check = (name,d) => !name || !rule[name] || rule[name](d);
 
@@ -212,12 +213,12 @@ function makeInspector(name) {
         sectionMarkup+=`<details class="fl-section fl-${sectionId}" ${s.expanded===false?'':'open'}><summary><span class="fl-icon">${escapeHtml(s.icon||'◇')}</span>${escapeHtml(s.title)}</summary><div class="fl-content">${rows}</div></details>`;
     });
     const icon=conf.kind==='object'?'◈':conf.kind==='layout'?'▦':'✧';
-    const template=`<div class="fl-root"><div class="fl-head"><div class="fl-heading"><div class="fl-mark">${icon}</div><div><div class="fl-brand">FLEXALON</div><div class="fl-title">${escapeHtml(conf.title)}</div></div></div><div class="fl-subtitle">${escapeHtml(conf.subtitle)}</div><div class="fl-summary"></div></div><div class="fl-stale" hidden></div>${sectionMarkup}${conf.note?`<div class="fl-hint">${escapeHtml(conf.note)}</div>`:''}<div class="fl-foot"><span class="fl-version">Cocos · Inspector v0.5.4-dev.2</span><button type="button" class="fl-guide-button">◉ Guide</button><button type="button" class="fl-refresh">↻ Refresh Layouts</button></div></div>`;
+    const template=`<div class="fl-root"><div class="fl-head"><div class="fl-heading"><div class="fl-mark">${icon}</div><div><div class="fl-brand">FLEXALON</div><div class="fl-title">${escapeHtml(conf.title)}</div></div></div><div class="fl-subtitle">${escapeHtml(conf.subtitle)}</div><div class="fl-summary"></div></div><div class="fl-stale" hidden></div>${sectionMarkup}${conf.note?`<div class="fl-hint">${escapeHtml(conf.note)}</div>`:''}<div class="fl-foot"><span class="fl-version">Cocos · Inspector v0.5.4-dev.3</span><button type="button" class="fl-guide-button">◉ Guide</button><button type="button" class="fl-refresh">↻ Refresh Layouts</button></div></div>`;
     function refresh(thisPanel, dump) {
         if (!dump || !dump.value) return;
         if (thisPanel.$.stale) {
             const required=name==='FlexalonCurveAnimator'?
-                ['paused','previewInEditor','previewProgress','showGizmos']:[];
+                ['paused','previewInEditor','previewProgress','showGizmos','useStartPosition','startProgress','snapToStartInEditor','ignoreParentLayout']:[];
             const missing=required.filter(k=>!dump.value[k]);
             thisPanel.$.stale.hidden=missing.length===0;
             if(missing.length)thisPanel.$.stale.textContent=

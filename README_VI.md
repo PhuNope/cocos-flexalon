@@ -141,3 +141,12 @@ Bản dev chưa merge `main` hoặc phát hành Release.
 - Khi thả ngoài parent, Keep Outside On Release có hiệu lực cả khi Detach While Dragging tắt.
 - Curve Animator Inspector báo rõ khi asset-db script dump thiếu các thuộc tính Paused/Preview/Gizmos.
 - Tính năng Interactable là cho Preview/Runtime, không phải Move Tool trong Scene Editor.
+
+## Dev 0.5.4-dev.3 — Curve Animator Start Position
+
+- Use Start Position: khi bật, Start Position thay đổi P0 thực tế trong hệ local của parent, dịch toàn bộ đường Bézier; khi tắt, dùng P0 như cũ.
+- Start Progress: 0..1, bắt đầu animation tại một điểm trên curve; Loop quay lại Start Progress.
+- Snap To Start In Editor: căn Node vào điểm bắt đầu mà không chạy animation; tắt để chỉnh Transform bằng Move Tool.
+- Ignore Parent Layout: tùy chọn bỏ qua sắp xếp từ Flexalon Layout cha, mặc định tắt để giữ tương thích scene cũ.
+- Gizmos hiển thị start marker, preview marker, đường cong đã dịch theo Start Position.
+- API: Restart(), PlaceAtStart(), PointAt(t), UseCurrentPositionAsStart(). Không merge main hoặc tạo Release ở bản dev.
