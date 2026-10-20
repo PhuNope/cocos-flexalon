@@ -181,3 +181,14 @@ Curve Animator: Start Progress và Preview Progress dùng CCFloat với `range:[
 - Parent Layout vẫn có ưu tiên tuyệt đối; không thêm UITransform cho Node 3D khi không Fill hoặc parent không có UITransform.
 - Tự cập nhật khi Canvas resize; xét margin, min/max, anchor, Fill fraction, Preserve UI Content Size và Offset.
 - Đây là bản thử nghiệm trên dev, chưa merge main hoặc tạo Release.
+
+
+## Dev 0.5.5-dev.1 — Auto Updater (đang thử nghiệm)
+
+- Tự kiểm tra GitHub Release ổn định khi mở project; popup hỏi mở tab Check Update hoặc để sau.
+- Guide Panel có tab Check Update: phiên bản cài, Release mới nhất, Check Now, Update Now và tiến trình download thực tế.
+- Chỉ tải ZIP chính thức `PhuNope/cocos-flexalon/releases` qua HTTPS. Kiểm tra tên asset, phiên bản, CRC, chống path traversal và ZIP lỗi trước khi thay thế.
+- Helper được sao chép ra `<project>/.flexalon-updater/task-*/helper.cjs`, độc lập khỏi extension đang bị thay.
+- Sau khi cài/backup thành công, yêu cầu Editor đóng bình thường. Chỉ **sau khi Editor đã thoát**, Helper xóa `temp/`, `library/`; janitor độc lập chờ Helper thoát rồi xóa toàn bộ `.flexalon-updater/` (bao gồm backup) khi mọi bước thành công.
+- Không động đến `assets/`, `settings/`, `local/`, `build/`. Nếu lỗi cập nhật thì rollback và giữ backup/log; nếu Editor không đóng thì **không xóa cache**.
+- Trên nhánh dev sẽ dùng version `0.5.5-dev.1`. Release v0.5.4 sẽ không bị xem là bản mới hơn. Để test luồng tự update v0.5.4, dùng bản fake riêng; chưa merge main/Release.

@@ -1,6 +1,6 @@
 {
   "name": "flexalon-tools",
-  "version": "0.5.4",
+  "version": "0.5.5-dev.1",
   "package_version": 2,
   "description": "Flexalon unified extension: runtime TypeScript components, Unity-style inspectors and Vietnamese Guide for Cocos Creator >=3.8.2",
   "editor": ">=3.8.2",
@@ -24,6 +24,11 @@
         "path": "i18n:menu.extension/Flexalon",
         "label": "Open Flexalon Guide",
         "message": "open-guide"
+      },
+      {
+        "path": "i18n:menu.extension/Flexalon",
+        "label": "Check for Updates",
+        "message": "open-update-tab"
       }
     ],
     "messages": {
@@ -40,6 +45,26 @@
       "open-guide": {
         "methods": [
           "openGuide"
+        ]
+      },
+      "check-update": {
+        "methods": [
+          "checkUpdate"
+        ]
+      },
+      "get-update-status": {
+        "methods": [
+          "getUpdateStatus"
+        ]
+      },
+      "start-update": {
+        "methods": [
+          "startUpdate"
+        ]
+      },
+      "open-update-tab": {
+        "methods": [
+          "openUpdateTab"
         ]
       }
     },
@@ -80,7 +105,8 @@
     "verify": "node scripts/verify-package.cjs",
     "release": "npm run build && npm run verify && node scripts/package-release.cjs && node scripts/verify-release.cjs",
     "release:check": "node scripts/verify-release.cjs",
-    "release:files": "node scripts/release-manifest.cjs"
+    "release:files": "node scripts/release-manifest.cjs",
+    "test:updater": "node tests/updater.test.cjs"
   },
   "panels": {
     "guide": {

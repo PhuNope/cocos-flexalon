@@ -1,5 +1,12 @@
-declare const Editor: { Message: { request(channel: string, command: string, payload: object): Promise<any> }; Panel: {open(name:string):Promise<any>} };
+/** Cocos Creator editor main process. Updater runs only in the Editor, not game runtime. */
+declare const Editor: any;
+declare const require: (name: string) => any;
+declare const __dirname: string;
+const path = require('node:path');
 const pkg = 'flexalon-tools';
+const { UpdateService } = require('../updater/service.cjs');
+const updater = new UpdateService(path.resolve(__dirname, '..'), Editor);
+let autoTimer: any = null;
 async function scene(method: string): Promise<any> {
     try {return await Editor.Message.request('scene', 'execute-scene-script', { name: pkg, method, args: [] });}
     catch(error) { console.error(`[Flexalon] ${method} failed`,error); return null; }
@@ -9,6 +16,14 @@ export const methods = {
         try { await Editor.Panel.open('flexalon-tools.guide'); }
         catch(error) { console.error('[Flexalon] Cannot open Guide Panel',error); }
     },
+    async openUpdateTab() { updater.openUpdateOnNext=true; await methods.openGuide(); },
+    async checkUpdate() {return updater.check(true);},
+    getUpdateStatus() {
+        const open=updater.openUpdateOnNext===true;
+        updater.openUpdateOnNext=false;
+        return {...updater.snapshot(),openUpdateTab:open};
+    },
+    async startUpdate() {return updater.start();},
     async inspectLayouts() {
         const result = await scene('inspectLayouts');
         if(result) console.info('[Flexalon] Scene diagnostics:',JSON.stringify(result,null,2));
@@ -20,5 +35,5 @@ export const methods = {
         return result;
     }
 };
-export function load():void {}
-export function unload():void {}
+export function load():void { autoTimer=setTimeout(()=>{void updater.autoCheck();},4000); }
+export function unload():void { if(autoTimer)clearTimeout(autoTimer);updater.dispose(); }
