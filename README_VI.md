@@ -173,3 +173,11 @@ Curve Animator: Start Progress và Preview Progress dùng CCFloat với `range:[
 - Preserve UI Content Size bật thì không thay Content Size của child.
 - Parent có Flexalon Layout đang bật thì layout có ưu tiên; kéo Interactable thì tạm không điều chỉnh Fill.
 - Cập nhật trong Editor/Runtime khi kích thước parent thay đổi. Chỉ dev; chưa merge main hay tạo Release.
+
+## Dev 0.5.4-dev.7 — Fix Canvas Fill without pre-existing UITransform
+
+- Khi parent là Canvas (hoặc Node thường có `UITransform`) và child có `FlexalonObject` với Width/Height Type = Fill, Fill Parent Fallback mặc định **bật trên component mới**. Trên component đã tạo ở dev.6, Cocos có thể đã serialize `fillParentFallback=false`: bật lại trong Inspector.
+- Nếu child chưa có `UITransform`, fallback sẽ bổ sung **khi thực sự cần** (có ít nhất một trục Fill, parent có UITransform, không có Flexalon Layout đang chạy, không trong trạng thái kéo).
+- Parent Layout vẫn có ưu tiên tuyệt đối; không thêm UITransform cho Node 3D khi không Fill hoặc parent không có UITransform.
+- Tự cập nhật khi Canvas resize; xét margin, min/max, anchor, Fill fraction, Preserve UI Content Size và Offset.
+- Đây là bản thử nghiệm trên dev, chưa merge main hoặc tạo Release.

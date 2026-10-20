@@ -44,8 +44,8 @@ export class FlexalonObject extends FlexalonComponent {
     @property({type: Vec3, tooltip: "Cộng thêm góc Euler XYZ (độ) vào rotation do layout tính. Không giữ rotation cũ của child.", visible: true}) public rotationOffset: Vec3 = new Vec3();
     @property({type: Vec3, tooltip: "Nhân tỷ lệ scale XYZ của node sau khi layout sắp xếp.", visible: true}) public scaleMultiplier: Vec3 = new Vec3(1,1,1);
     @property({tooltip: "Bỏ qua node này khi layout cha đo kích thước và sắp xếp các child.", visible: true}) public skipLayout = false;
-    @property({tooltip: 'Cho phép Width/Height = Fill tự giãn theo UITransform của parent khi parent KHÔNG có Flexalon Layout. Mặc định tắt để giữ tương thích Scene cũ.', visible: true, displayName: 'Fill Parent Fallback'})
-    public fillParentFallback = false;
+    @property({tooltip: 'Khi Width/Height = Fill và parent là UITransform (Canvas hoặc Node UI) không có Flexalon Layout, tự giãn theo parent. Mặc định BẬT cho component mới; Scene cũ đã lưu giá trị false cần bật thủ công.', visible: true, displayName: 'Fill Parent Fallback'})
+    public fillParentFallback = true;
     @property({tooltip: "BẬT: không thay đổi UITransform.width/height. TẮT (khuyên dùng): Flexalon đồng bộ UITransform theo Fixed/Fill/Layout. Có thể gây chênh lệch giữa kích thước layout và kích thước hiển thị khi bật.", visible: true, displayName: "Preserve UI Content Size"}) public preserveUIContentSize = false;
     /**
      * Keep UITransform.contentSize in sync with Fixed X/Y, even when this node
@@ -81,8 +81,10 @@ export class FlexalonObject extends FlexalonComponent {
         if (!this.fillParentFallback || !this.enabledInHierarchy || !this.node || !this.node.parent) return;
         const parent = this.node.parent;
         const parentUI = parent.getComponent(UITransform);
-        const ui = this.node.getComponent(UITransform);
-        if (!parentUI || !ui) return;
+        if (!parentUI) return;
+        const fillX = this.widthType === SizeType.Fill;
+        const fillY = this.heightType === SizeType.Fill;
+        if (!fillX && !fillY) return;
         // LayoutBase derives from FlexalonComponent. Check by behavior rather
         // than importing LayoutBase here (which itself imports FlexalonObject),
         // to avoid a circular runtime import and handle derived layouts equally.
@@ -100,9 +102,10 @@ export class FlexalonObject extends FlexalonComponent {
         const dragging = this.node.getComponents(FlexalonComponent).some(component =>
             (component as FlexalonComponent & {IsDragging?: boolean}).IsDragging === true);
         if (dragging) return;
-        const fillX = this.widthType === SizeType.Fill;
-        const fillY = this.heightType === SizeType.Fill;
-        if (!fillX && !fillY) return;
+        // A UITransform may be absent on a plain Node created beneath Canvas.
+        // Add it only when Fill fallback actually applies; never force a
+        // UITransform onto a 3D FlexalonObject or a child managed by a layout.
+        const ui = this.node.getComponent(UITransform) ?? this.node.addComponent(UITransform);
         const availableWidth = Math.max(0, parentUI.width - this.marginLeft - this.marginRight);
         const availableHeight = Math.max(0, parentUI.height - this.marginTop - this.marginBottom);
         const desiredWidth = fillX ? this.clampSize(0, availableWidth * this.fraction(0)) : ui.width;

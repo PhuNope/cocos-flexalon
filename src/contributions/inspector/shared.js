@@ -20,11 +20,11 @@ const configs = {
       { title: 'Min / Max', icon: '⇳', expanded: false, fields: ['minSize','maxSize'] },
       { title: 'Margin', icon: '□', expanded: false, fields: ['marginLeft','marginRight','marginTop','marginBottom','marginFront','marginBack'] },
       { title: 'Transform', icon: '✧', expanded: false, fields: ['offset','rotationOffset','scaleMultiplier'] },
-      { title: 'Fill Parent Fallback', icon: '⇱', expanded: false, fields: ['fillParentFallback'] },
+      { title: 'Fill Parent Fallback', icon: '⇱', expanded: true, when: 'anyFill', fields: ['fillParentFallback'] },
       { title: 'Advanced', icon: '⚙', expanded: false, fields: ['skipLayout','preserveUIContentSize'] },
       { title: 'Scene Gizmos', icon: '◈', expanded: false, fields: ['showGizmos'] }
     ],
-    note: 'Fill Parent Fallback (mặc định tắt): Width/Height = Fill tự giãn theo UITransform parent nếu parent không có Flexalon Layout. Margin, Min/Max và Anchor đều được áp dụng.'
+    note: 'Fill Parent Fallback mặc định BẬT cho component mới khi có trục Fill và parent UITransform (kể cả Canvas). Tự bổ sung UITransform cho child nếu thiếu. Component cũ đã lưu false phải bật lại trong nhóm Fill Parent Fallback.'
   },
   FlexalonFlexibleLayout: {
     title: 'Flexible Layout', subtitle: 'Sắp xếp linh hoạt theo trục, hỗ trợ wrap', kind: 'layout',
@@ -215,7 +215,7 @@ function makeInspector(name) {
         sectionMarkup+=`<details class="fl-section fl-${sectionId}" ${s.expanded===false?'':'open'}><summary><span class="fl-icon">${escapeHtml(s.icon||'◇')}</span>${escapeHtml(s.title)}</summary><div class="fl-content">${rows}</div></details>`;
     });
     const icon=conf.kind==='object'?'◈':conf.kind==='layout'?'▦':'✧';
-    const template=`<div class="fl-root"><div class="fl-head"><div class="fl-heading"><div class="fl-mark">${icon}</div><div><div class="fl-brand">FLEXALON</div><div class="fl-title">${escapeHtml(conf.title)}</div></div></div><div class="fl-subtitle">${escapeHtml(conf.subtitle)}</div><div class="fl-summary"></div></div><div class="fl-stale" hidden></div>${sectionMarkup}${conf.note?`<div class="fl-hint">${escapeHtml(conf.note)}</div>`:''}<div class="fl-foot"><span class="fl-version">Cocos · Inspector v0.5.4-dev.6</span><button type="button" class="fl-guide-button">◉ Guide</button><button type="button" class="fl-refresh">↻ Refresh Layouts</button></div></div>`;
+    const template=`<div class="fl-root"><div class="fl-head"><div class="fl-heading"><div class="fl-mark">${icon}</div><div><div class="fl-brand">FLEXALON</div><div class="fl-title">${escapeHtml(conf.title)}</div></div></div><div class="fl-subtitle">${escapeHtml(conf.subtitle)}</div><div class="fl-summary"></div></div><div class="fl-stale" hidden></div>${sectionMarkup}${conf.note?`<div class="fl-hint">${escapeHtml(conf.note)}</div>`:''}<div class="fl-foot"><span class="fl-version">Cocos · Inspector v0.5.4-dev.7</span><button type="button" class="fl-guide-button">◉ Guide</button><button type="button" class="fl-refresh">↻ Refresh Layouts</button></div></div>`;
     function refresh(thisPanel, dump) {
         if (!dump || !dump.value) return;
         if (thisPanel.$.stale) {
