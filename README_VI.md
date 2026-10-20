@@ -154,3 +154,13 @@ Bản dev chưa merge `main` hoặc phát hành Release.
 ## Dev v0.5.4-dev.4 — Bước nhảy Slider
 
 Curve Animator: Start Progress và Preview Progress dùng CCFloat với `range:[0,1,0.01]` (bước 1%). Rà soát toàn bộ 43 runtime script và Custom Inspector: hai trường này là toàn bộ slider số thực hiện tại. Max Items Per Line giữ step 1 do là số nguyên. Script `verify-sliders.cjs` chạy cùng npm run verify để tránh tạo lại slider không chỉnh được.
+
+
+
+## Dev v0.5.4-dev.5 — Grid Layout Gizmos
+
+- Grid Layout có phần **Grid Gizmos** trong Inspector: Show Grid, Show Cell Bounds, Show Occupied Cells, Show Grid Gaps và Show Cell Index.
+- Tâm/kích thước của ô dùng **chung `geometry()` và `cellGeometry()`** với `arrangeChildren`, bao gồm Uniform, Fit Children, Start Corner, Hexagonal và GridCell Column/Row Span. Vùng chiếm bởi child có đường màu cam; cell màu cyan; gap màu tím.
+- Hexagonal dùng khung lục giác cho cell đơn; span nhiều cell được thể hiện bằng hình chữ nhật bao vì hệ thống layout tính vùng span theo khung bao.
+- Index hiển thị dạng `column,row` bắt đầu từ 1. Gizmos giới hạn 400 cell, 80 nhãn để không quá tải Cocos Editor. Không cần/copy runtime Cocos-Gizmos thứ hai.
+- Chỉ phát triển trên `dev`, chưa merge `main`, chưa tạo tag hoặc Release.

@@ -10,6 +10,7 @@ export interface Gizmos2DShape {
   endLocalPosition(node: Node): void;
   drawLineList(node: Node, points: IVec2Like[], close?: boolean): void;
   drawCircle(node: Node, center: IVec2Like, radius: number): void;
+  drawLabel?(node: Node, id: string, text: string, position: IVec2Like, fontSize?: number): void;
 }
 
 /**
@@ -81,6 +82,7 @@ const stableGizmos: Gizmos2DShape = {
   endLocalPosition(_node) { /* always world-space */ },
   drawLineList(node, points, close = false) { runtimeGizmos()?.drawLineList(anchorFor(node), points, close); },
   drawCircle(node, center, radius) { runtimeGizmos()?.drawCircle(anchorFor(node), center, radius); },
+  drawLabel(node, id, text, position, fontSize) { runtimeGizmos()?.drawLabel?.(anchorFor(node), id, text, position, fontSize); },
 };
 export function flexalonGizmos(): Gizmos2DShape | undefined {
   return runtimeGizmos() ? stableGizmos : undefined;
@@ -128,4 +130,13 @@ export function drawLocalCircle(g:Gizmos2DShape,node:Node,center:IVec2Like,radiu
     return {x:center.x+Math.cos(a)*radius,y:center.y+Math.sin(a)*radius};
   });
   drawLocalLineList(g,node,p,true);
+}
+
+/** Labels use the same stable Canvas anchor and world-space transform as lines. */
+export function drawLocalLabel(g: Gizmos2DShape, node: Node, id: string,
+  text: string, point: IVec2Like, fontSize = 12): void {
+  if (!g.drawLabel) return;
+  const world = new Vec3();
+  Vec3.transformMat4(world, new Vec3(point.x, point.y, 0), node.worldMatrix);
+  g.drawLabel(node, id, text, {x: world.x, y: world.y}, fontSize);
 }

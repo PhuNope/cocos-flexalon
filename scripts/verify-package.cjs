@@ -46,3 +46,5 @@ assert.doesNotMatch(guide[0].steps[0],/Copy assets\/flexalon/);
 console.log('PASS: 1 extension; 43 runtime scripts; '+metas.length+' metadata files with unique UUIDs; 18 Inspectors; 19 guide lessons; Cocos >=3.8.2 mount');
 
 require('./verify-sliders.cjs');
+
+require('../tests/grid-gizmos.test.cjs');
