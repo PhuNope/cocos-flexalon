@@ -164,3 +164,12 @@ Curve Animator: Start Progress và Preview Progress dùng CCFloat với `range:[
 - Hexagonal dùng khung lục giác cho cell đơn; span nhiều cell được thể hiện bằng hình chữ nhật bao vì hệ thống layout tính vùng span theo khung bao.
 - Index hiển thị dạng `column,row` bắt đầu từ 1. Gizmos giới hạn 400 cell, 80 nhãn để không quá tải Cocos Editor. Không cần/copy runtime Cocos-Gizmos thứ hai.
 - Chỉ phát triển trên `dev`, chưa merge `main`, chưa tạo tag hoặc Release.
+
+## Dev 0.5.4-dev.6 — Fill Parent Fallback
+
+- \`FlexalonObject.fillParentFallback\` mặc định tắt để giữ hành vi cũ.
+- Bật với parent chỉ có UITransform: các trục Width/Height Type Fill nhận (Content Size parent - Margin) nhân Fill X/Y, có giới hạn Min/Max.
+- Căn giữa vùng content theo Anchor parent/child và Object Offset. Trục không Fill giữ nguyên.
+- Preserve UI Content Size bật thì không thay Content Size của child.
+- Parent có Flexalon Layout đang bật thì layout có ưu tiên; kéo Interactable thì tạm không điều chỉnh Fill.
+- Cập nhật trong Editor/Runtime khi kích thước parent thay đổi. Chỉ dev; chưa merge main hay tạo Release.

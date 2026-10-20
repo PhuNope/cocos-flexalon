@@ -44,6 +44,8 @@ export class FlexalonObject extends FlexalonComponent {
     @property({type: Vec3, tooltip: "Cộng thêm góc Euler XYZ (độ) vào rotation do layout tính. Không giữ rotation cũ của child.", visible: true}) public rotationOffset: Vec3 = new Vec3();
     @property({type: Vec3, tooltip: "Nhân tỷ lệ scale XYZ của node sau khi layout sắp xếp.", visible: true}) public scaleMultiplier: Vec3 = new Vec3(1,1,1);
     @property({tooltip: "Bỏ qua node này khi layout cha đo kích thước và sắp xếp các child.", visible: true}) public skipLayout = false;
+    @property({tooltip: 'Cho phép Width/Height = Fill tự giãn theo UITransform của parent khi parent KHÔNG có Flexalon Layout. Mặc định tắt để giữ tương thích Scene cũ.', visible: true, displayName: 'Fill Parent Fallback'})
+    public fillParentFallback = false;
     @property({tooltip: "BẬT: không thay đổi UITransform.width/height. TẮT (khuyên dùng): Flexalon đồng bộ UITransform theo Fixed/Fill/Layout. Có thể gây chênh lệch giữa kích thước layout và kích thước hiển thị khi bật.", visible: true, displayName: "Preserve UI Content Size"}) public preserveUIContentSize = false;
     /**
      * Keep UITransform.contentSize in sync with Fixed X/Y, even when this node
@@ -66,12 +68,76 @@ export class FlexalonObject extends FlexalonComponent {
             ui.setContentSize(width, height);
         }
     }
-    protected onEnable(): void { this.SyncFixedUIContentSize(); }
-    protected lateUpdate(): void { this.SyncFixedUIContentSize(); }
+    /**
+     * Opt-in Fill for a regular UITransform parent (without an active Flexalon
+     * layout). Ordinary Fill is exclusively handled by the parent's layout.
+     *
+     * Sizes and offsets are in parent-local UI units, not world pixel units;
+     * parent scale/rotation therefore work naturally. Poll in edit/play mode
+     * because parent Content Size and serialized child settings can change in
+     * Inspector without invoking a property setter.
+     */
+    public ApplyFillParentFallback(): void {
+        if (!this.fillParentFallback || !this.enabledInHierarchy || !this.node || !this.node.parent) return;
+        const parent = this.node.parent;
+        const parentUI = parent.getComponent(UITransform);
+        const ui = this.node.getComponent(UITransform);
+        if (!parentUI || !ui) return;
+        // LayoutBase derives from FlexalonComponent. Check by behavior rather
+        // than importing LayoutBase here (which itself imports FlexalonObject),
+        // to avoid a circular runtime import and handle derived layouts equally.
+        const hasActiveParentLayout = parent.getComponents(FlexalonComponent).some(component => {
+            const layout = component as FlexalonComponent & {
+                arrangeChildren?: unknown;
+                measureIntrinsic?: unknown;
+            };
+            return layout.enabledInHierarchy &&
+                typeof layout.arrangeChildren === 'function' &&
+                typeof layout.measureIntrinsic === 'function';
+        });
+        if (hasActiveParentLayout) return;
+        // Never pull a user-dragged child back to the parent centre.
+        const dragging = this.node.getComponents(FlexalonComponent).some(component =>
+            (component as FlexalonComponent & {IsDragging?: boolean}).IsDragging === true);
+        if (dragging) return;
+        const fillX = this.widthType === SizeType.Fill;
+        const fillY = this.heightType === SizeType.Fill;
+        if (!fillX && !fillY) return;
+        const availableWidth = Math.max(0, parentUI.width - this.marginLeft - this.marginRight);
+        const availableHeight = Math.max(0, parentUI.height - this.marginTop - this.marginBottom);
+        const desiredWidth = fillX ? this.clampSize(0, availableWidth * this.fraction(0)) : ui.width;
+        const desiredHeight = fillY ? this.clampSize(1, availableHeight * this.fraction(1)) : ui.height;
+        if (!this.preserveUIContentSize &&
+            (Math.abs(ui.width - desiredWidth) > 0.0001 || Math.abs(ui.height - desiredHeight) > 0.0001)) {
+            ui.setContentSize(desiredWidth, desiredHeight);
+        }
+        // Align the filled axes to the centre of the parent's content area.
+        // Retain position on axes that are NOT Fill. UITransform anchors are
+        // accounted for so a (0, 0) anchor still starts at the correct edge.
+        const current = this.node.position;
+        const x = fillX ? (0.5 - parentUI.anchorX) * parentUI.width +
+            (this.marginLeft - this.marginRight) * 0.5 +
+            (ui.anchorX - 0.5) * ui.width + this.offset.x : current.x;
+        const y = fillY ? (0.5 - parentUI.anchorY) * parentUI.height +
+            (this.marginBottom - this.marginTop) * 0.5 +
+            (ui.anchorY - 0.5) * ui.height + this.offset.y : current.y;
+        if (Math.abs(current.x - x) > 0.0001 || Math.abs(current.y - y) > 0.0001) {
+            this.node.setPosition(x, y, current.z);
+        }
+    }
+    protected onEnable(): void {
+        this.SyncFixedUIContentSize();
+        this.ApplyFillParentFallback();
+    }
+    protected lateUpdate(): void {
+        this.SyncFixedUIContentSize();
+        this.ApplyFillParentFallback();
+    }
     /** Explicit API for game scripts/editor actions; regular edit/play mode also syncs automatically. */
     public override ForceUpdate(): void {
         super.ForceUpdate();
         this.SyncFixedUIContentSize();
+        this.ApplyFillParentFallback();
     }
     /** Convenience setter: use Fixed for width/height and apply them immediately. */
     public SetFixedSize(width: number, height: number): void {

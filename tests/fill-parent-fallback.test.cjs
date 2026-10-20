@@ -1,0 +1,17 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const base=path.resolve(__dirname,'..');
+const source=fs.readFileSync(path.join(base,'assets/flexalon/Core/FlexalonObject.ts'),'utf8');
+const inspector=fs.readFileSync(path.join(base,'src/contributions/inspector/shared.js'),'utf8');
+assert.match(source,/public fillParentFallback = false/);
+assert.match(source,/public ApplyFillParentFallback\(\): void/);
+assert.match(source,/hasActiveParentLayout/);
+assert.match(source,/const availableWidth = Math\.max\(0, parentUI\.width - this\.marginLeft - this\.marginRight\)/);
+assert.match(source,/const availableHeight = Math\.max\(0, parentUI\.height - this\.marginTop - this\.marginBottom\)/);
+assert.match(source,/this\.clampSize\(0, availableWidth \* this\.fraction\(0\)\)/);
+assert.match(source,/this\.clampSize\(1, availableHeight \* this\.fraction\(1\)\)/);
+assert.match(source,/if \(!this\.preserveUIContentSize/);
+assert.match(source,/const dragging = this\.node\.getComponents/);
+assert.match(source,/this\.ApplyFillParentFallback\(\)/);
+assert.ok(inspector.includes("'fillParentFallback'"));
+console.log('PASS: Fill Parent Fallback source safety guards and Inspector registration');
