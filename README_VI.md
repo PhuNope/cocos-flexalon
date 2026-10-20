@@ -150,3 +150,7 @@ Bản dev chưa merge `main` hoặc phát hành Release.
 - Ignore Parent Layout: tùy chọn bỏ qua sắp xếp từ Flexalon Layout cha, mặc định tắt để giữ tương thích scene cũ.
 - Gizmos hiển thị start marker, preview marker, đường cong đã dịch theo Start Position.
 - API: Restart(), PlaceAtStart(), PointAt(t), UseCurrentPositionAsStart(). Không merge main hoặc tạo Release ở bản dev.
+
+## Dev v0.5.4-dev.4 — Bước nhảy Slider
+
+Curve Animator: Start Progress và Preview Progress dùng CCFloat với `range:[0,1,0.01]` (bước 1%). Rà soát toàn bộ 43 runtime script và Custom Inspector: hai trường này là toàn bộ slider số thực hiện tại. Max Items Per Line giữ step 1 do là số nguyên. Script `verify-sliders.cjs` chạy cùng npm run verify để tránh tạo lại slider không chỉnh được.

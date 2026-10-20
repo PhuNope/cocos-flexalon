@@ -1,4 +1,4 @@
-import { _decorator, Vec3 } from 'cc';
+import { _decorator, CCFloat, Vec3 } from 'cc';
 import { EDITOR } from 'cc/env';
 import { FlexalonComponent } from '../Core/FlexalonComponent';
 import { FlexalonMath } from '../Core/FlexalonMath';
@@ -15,7 +15,7 @@ export class FlexalonCurveAnimator extends FlexalonComponent {
     @property({type:Vec3,tooltip:'P3: điểm cuối đường Bézier (parent-local).',visible:true}) public p3=new Vec3(100,0,0);
     @property({tooltip:'Bật để đặt vị trí bắt đầu độc lập P0, dịch toàn bộ Bézier sao cho điểm đầu khớp Start Position.',visible:true}) public useStartPosition=false;
     @property({type:Vec3,tooltip:'Vị trí P0 thực tế trong local của parent.',visible:function(this:FlexalonCurveAnimator){return this.useStartPosition;}}) public startPosition=new Vec3(-100,0,0);
-    @property({range:[0,1],slide:true,tooltip:'Điểm xuất phát trên curve: 0=P0, 1=P3.',visible:true}) public startProgress=0;
+    @property({type:CCFloat,range:[0,1,0.01],slide:true,tooltip:'Điểm xuất phát trên curve: 0=P0, 1=P3.',visible:true}) public startProgress=0;
     @property({tooltip:'Đặt Node vào Start Progress khi chỉnh Scene mà không chạy animation.',visible:true}) public snapToStartInEditor=false;
     @property({tooltip:'Layout cha không sắp xếp node này. Bật khi Curve Animator điều khiển vị trí.',visible:true}) public ignoreParentLayout=false;
     @property({tooltip:'Thời gian đi hết đường cong gốc (giây).',visible:true}) public duration=2;
@@ -23,7 +23,7 @@ export class FlexalonCurveAnimator extends FlexalonComponent {
     @property({tooltip:'Tạm dừng chuyển động trong Editor/Runtime.',visible:true}) public paused=false;
     @property({tooltip:'Chạy thử animation trong Scene Editor (mặc định tắt).',visible:true}) public previewInEditor=false;
     @property({tooltip:'Hiện Gizmos khi chọn Node; cần Cocos-Gizmos v2.',visible:true}) public showGizmos=true;
-    @property({range:[0,1],slide:true,tooltip:'Marker tham khảo trên đường cong; không di chuyển Node.',visible:true}) public previewProgress=0;
+    @property({type:CCFloat,range:[0,1,0.01],slide:true,tooltip:'Marker tham khảo trên đường cong; không di chuyển Node.',visible:true}) public previewProgress=0;
 
     private timer=0;
     private initialized=false;
