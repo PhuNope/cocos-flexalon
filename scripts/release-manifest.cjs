@@ -17,6 +17,8 @@ const assert = require('node:assert/strict');
 
 const INSTALL_FILES = Object.freeze([
     'package.json',
+    'updater/service.cjs',
+    'updater/helper.cjs',
     'README_VI.md',
     'static/guide-icon.png',
     'scripts/migrate-legacy.cjs',

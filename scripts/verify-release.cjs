@@ -52,7 +52,7 @@ for (let i = 0; i < count; i++) {
     at += 46 + nameSize + extraSize + commentSize;
 }
 for (const required of [
-    'package.json', 'assets/flexalon/Core/FlexalonObject.ts',
+    'package.json', 'updater/helper.cjs', 'updater/service.cjs', 'assets/flexalon/Core/FlexalonObject.ts',
     'assets/flexalon/Layouts/FlexalonGridLayout.ts',
     'dist/main.js', 'dist/scene.js', 'dist/panels/guide/client.js',
     'dist/contributions/inspector/FlexalonGridLayout.js',
@@ -65,3 +65,6 @@ for (const banned of ['src/main.ts','package-lock.json','tsconfig.json','README.
 }
 assert.ok(count > 115, `Too few packaged files: ${count}`);
 console.log(`[Flexalon Release] PASS: ${count} ZIP entries decompressed and verified (${path.basename(zip)})`);
+
+// Test updater only AFTER release ZIP has been built and CRC checked.
+require('../tests/updater.test.cjs');

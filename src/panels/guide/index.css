@@ -68,3 +68,24 @@
 .guide-footer{font-size:11px;color:#8096ac;margin-top:25px;border-top:1px solid #263449;padding-top:13px;}
 @media(max-width:690px){.guide-sidebar{width:172px;flex-basis:172px}.guide-item{padding:8px 5px;gap:5px}.guide-header{padding:10px 13px}.guide-page{padding:20px 15px 50px}.guide-brand-name{font-size:14px}.guide-version{display:none}.guide-tree{font-size:10px}}
 @media(max-width:420px){.guide-sidebar{width:52px;flex-basis:52px}.guide-search-wrap{padding:8px 4px}.guide-search{padding:4px;width:100%}.guide-search-icon,.guide-group,.guide-item-label,.guide-count{display:none}.guide-item{justify-content:center}.guide-item-icon{font-size:17px}.guide-page{padding:16px 12px 36px}}
+
+/* Editor-only auto updater Guide tab */
+.guide-header-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.guide-tab{border:1px solid #35536a;border-radius:7px;background:#172436;color:#b2c9de;padding:7px 10px;cursor:pointer;font-size:12px}
+.guide-tab:hover,.guide-tab.active{background:#245074;border-color:#4696ce;color:#fff}
+.guide-sidebar[hidden]{display:none!important}
+.update-page{padding:32px clamp(20px,5vw,52px);max-width:900px;margin:0 auto}
+.update-version-grid{display:grid;grid-template-columns:repeat(2,minmax(140px,1fr));gap:13px;margin:22px 0}
+.update-card{display:flex;flex-direction:column;gap:8px;border:1px solid #38526b;padding:18px;border-radius:12px;background:#1b293a}
+.update-card span{color:#b9cbdc;font-size:12px}.update-card strong{font-size:22px;color:#b3e7ff}
+.update-status{border:1px solid #38526b;border-radius:12px;background:#1b293a;padding:20px;margin:20px 0}
+.update-status-title{color:#e1effb;font-size:14px;word-break:break-word}
+.update-progress{height:10px;margin-top:15px;background:#0f1925;border-radius:10px;overflow:hidden;border:1px solid #46637b}
+.update-progress-fill{height:100%;background:#4fc3ae;border-radius:10px;transition:width .22s}
+.update-bytes{margin-top:9px;color:#a4bbd2;text-align:right;font-size:12px}
+.update-buttons{display:flex;gap:10px;flex-wrap:wrap}
+.update-btn{cursor:pointer;border-radius:8px;padding:11px 17px;color:#e1efff;background:#2c3d52;border:1px solid #50718a}
+.update-btn.primary{background:#2678a3;border-color:#58b7e8;color:white;font-weight:700}
+.update-btn:disabled{opacity:.45;cursor:not-allowed}
+.update-release-url{margin:22px 0;color:#809bbb;font-size:11px;word-break:break-all}
+@media(max-width:580px){.update-version-grid{grid-template-columns:1fr}.guide-header{height:auto;min-height:60px;flex-wrap:wrap}}

@@ -140,15 +140,48 @@ function renderPage(doc,all) {
  <section class="guide-section"><h2 class="guide-section-head">Bài tập thực hành</h2><div class="guide-challenge"><span class="guide-challenge-icon">◈</span><div>${escapeHtml(doc.task)}</div></div></section>
  ${related.length?`<section class="guide-section"><h2 class="guide-section-head">Xem thêm</h2><div class="guide-related">${related.map(x=>`<button type="button" data-guide="${escapeHtml(x.id)}">${escapeHtml(x.name)} →</button>`).join('')}</div></section>`:''}
  <div class="guide-inline-navigation"><button type="button" class="guide-nav-btn" data-guide="${escapeHtml(all[Math.max(0,i-1)].id)}" ${i===0?'disabled':''}>← ${escapeHtml(i===0?'Bài đầu tiên':all[i-1].name)}</button><button type="button" class="guide-nav-btn" data-guide="${escapeHtml(all[Math.min(all.length-1,i+1)].id)}" ${i===all.length-1?'disabled':''}>${escapeHtml(i===all.length-1?'Đã hết bài':all[i+1].name)} →</button></div>
- <footer class="guide-footer">Flexalon Cocos v0.5.2 · Hướng dẫn offline dựa trên mã port hiện tại. Đây không phải screenshot Cocos Editor hoặc lời cam kết tương đương hoàn toàn bản Unity.</footer>
+ <footer class="guide-footer">Flexalon Cocos · Hướng dẫn offline dựa trên mã port hiện tại. Đây không phải screenshot Cocos Editor hoặc lời cam kết tương đương hoàn toàn bản Unity.</footer>
  </article>`;
 }
 function mount(root, docs, options={}) {
  if(!root || !Array.isArray(docs)||!docs.length)throw new Error('Flexalon Guide: invalid mount arguments');
- const store={active:options.initialId&&docs.find(x=>x.id===options.initialId)?options.initialId:docs[0].id, search:''};
+ const store={active:options.initialId&&docs.find(x=>x.id===options.initialId)?options.initialId:docs[0].id, search:'',mode:'guide',status:null};
  const groups=[...new Set(docs.map(d=>d.group))];
- root.innerHTML=`<div class="guide-layout"><header class="guide-header"><div class="guide-brand"><div class="guide-logo">◈</div><div><div class="guide-brand-name">FLEXALON <span style="color:#87d8ff">GUIDE</span></div><div class="guide-brand-caption">Cocos Creator • Hướng dẫn thực hành</div></div></div><span class="guide-version">v0.5.2</span></header><div class="guide-main"><aside class="guide-sidebar"><div class="guide-search-wrap"><span class="guide-search-icon">⌕</span><input class="guide-search" type="search" placeholder="Tìm component..." aria-label="Tìm component" spellcheck="false"></div><nav class="guide-nav" aria-label="Danh sách bài hướng dẫn"></nav><div class="guide-count">19 bài · 18 component<br/>Hình minh họa · Offline</div></aside><main class="guide-content" tabindex="-1"></main></div></div>`;
+ root.innerHTML=`<div class="guide-layout"><header class="guide-header"><div class="guide-brand"><div class="guide-logo">◈</div><div><div class="guide-brand-name">FLEXALON <span style="color:#87d8ff">GUIDE</span></div><div class="guide-brand-caption">Cocos Creator • Hướng dẫn thực hành</div></div></div><div class="guide-header-actions"><button class="guide-tab active" type="button" data-tab="guide">Hướng dẫn</button><button class="guide-tab" type="button" data-tab="updates">Check Update</button><span class="guide-version">...</span></div></header><div class="guide-main"><aside class="guide-sidebar"><div class="guide-search-wrap"><span class="guide-search-icon">⌕</span><input class="guide-search" type="search" placeholder="Tìm component..." aria-label="Tìm component" spellcheck="false"></div><nav class="guide-nav" aria-label="Danh sách bài hướng dẫn"></nav><div class="guide-count">19 bài · 18 component<br/>Hình minh họa · Offline</div></aside><main class="guide-content" tabindex="-1"></main></div></div>`;
  const nav=root.querySelector('.guide-nav'); const content=root.querySelector('.guide-content');const search=root.querySelector('.guide-search');
+ const sidebar=root.querySelector('.guide-sidebar');
+ const api=async(cmd)=>{if(typeof Editor==='undefined'||!Editor.Message?.request)throw Error('Không kết nối được Editor');return Editor.Message.request('flexalon-tools',cmd);};
+ const fmt=n=>n?(n/1048576).toFixed(2)+' MB':'0 MB';
+ function renderUpdate(){
+   const s=store.status||{installed:'-',phase:'idle',percent:0,message:'Chưa kiểm tra cập nhật'};
+   const progress=['downloading','verifying','installing','installed','waiting_for_editor_exit','clearing_cache','rolling_back','complete'].includes(s.phase);
+   const doing=['downloading','verifying','installing','installed','waiting_for_editor_exit','clearing_cache','rolling_back'].includes(s.phase);
+   const canUpdate=s.phase==='available';
+   const percent=Math.max(0,Math.min(100,Number(s.percent)||0));
+   return '<section class="update-page"><div class="guide-eyebrow">FLEXALON · AUTO UPDATER</div>'+
+    '<h1 class="guide-h1">Check Update</h1><p class="guide-intro">Tải bản GitHub Release ổn định. Khi cập nhật thành công, Editor tự đóng; Helper sẽ xóa temp/, library/ và toàn bộ .flexalon-updater/ sau khi Editor thoát.</p>'+
+    '<div class="update-version-grid"><div class="update-card"><span>Đang cài đặt</span><strong>v'+escapeHtml(s.installed)+'</strong></div>'+
+    '<div class="update-card"><span>GitHub Release mới nhất</span><strong>'+(s.latest?'v'+escapeHtml(s.latest):'Chưa kiểm tra')+'</strong></div></div>'+
+    '<div class="update-status"><div class="update-status-title">'+escapeHtml(s.message||'')+'</div>'+
+    (progress?'<div class="update-progress"><div class="update-progress-fill" style="width:'+percent+'%"></div></div><div class="update-bytes">'+(s.phase==='downloading'?fmt(s.downloaded)+' / '+fmt(s.total)+' · ':'')+percent+'%</div>':'')+
+    '</div><div class="update-buttons"><button type="button" class="update-btn" data-update="check" '+(doing?'disabled':'')+'>↻ Check Now</button>'+
+    '<button type="button" class="update-btn primary" data-update="install" '+(!canUpdate||doing?'disabled':'')+'>⬇ Update Now</button></div>'+
+    (s.releaseUrl?'<p class="update-release-url">Nguồn: '+escapeHtml(s.releaseUrl)+'</p>':'')+
+    '<div class="guide-note">ⓘ Khi cập nhật thành công và Editor đã đóng, cache và backup trong .flexalon-updater/ sẽ bị xóa. Hãy sao lưu project và lưu Scene trước khi cập nhật. Nếu cập nhật lỗi, Helper sẽ rollback và giữ log.</div></section>';
+ }
+ function switchTab(mode){
+   store.mode=mode;
+   root.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-tab')===mode));
+   sidebar.hidden=mode==='updates';
+   if(mode==='updates'){content.innerHTML=renderUpdate();content.scrollTop=0;}else navigate(store.active);
+ }
+ async function refreshStatus(){
+   try {const s=await api('get-update-status');store.status=s;
+     const version=root.querySelector('.guide-version');if(version&&s.installed)version.textContent='v'+s.installed;
+     if(s.openUpdateTab&&store.mode!=='updates')switchTab('updates');
+     else if(store.mode==='updates')content.innerHTML=renderUpdate();
+   }catch(e){if(store.mode==='updates'){store.status={...(store.status||{}),phase:'check_error',message:e.message||String(e)};content.innerHTML=renderUpdate();}}
+ }
  function showNav(){
     const q=store.search.toLowerCase().trim();const matches=d=>[d.name,d.group,d.tagline,d.intro,d.use,...d.fields.map(f=>f[0])].join(' ').toLowerCase().includes(q);
     const matchesAll=docs.filter(matches);
@@ -163,9 +196,21 @@ function mount(root, docs, options={}) {
  }
  const onInput=()=>{store.search=search.value;showNav()};
  const onClick=async(e)=>{
-    const btn=e.target&&e.target.closest?e.target.closest('[data-guide],[data-copy]'):null;
+    const btn=e.target&&e.target.closest?e.target.closest('[data-guide],[data-copy],[data-tab],[data-update]'):null;
     if(!btn||!root.contains(btn)||btn.disabled)return;
-    if(btn.hasAttribute('data-guide')){navigate(btn.getAttribute('data-guide'));return;}
+    if(btn.hasAttribute('data-tab')){switchTab(btn.getAttribute('data-tab'));return;}
+    if(btn.hasAttribute('data-update')){
+      try{
+        if(btn.getAttribute('data-update')==='check'){store.status={...(store.status||{}),phase:'checking',message:'Đang kiểm tra GitHub Releases...'};content.innerHTML=renderUpdate();store.status=await api('check-update');}
+        else {
+          const confirmed=typeof window==='undefined'||typeof window.confirm!=='function'||
+            window.confirm('Update Now sẽ ghi đè Flexalon, đóng Cocos Creator, xóa cache temp/, library/ và toàn bộ .flexalon-updater/ gồm cả backup. Hãy lưu Scene trước. Tiếp tục?');
+          if(confirmed)store.status=await api('start-update');
+        }
+      }catch(e){store.status={...(store.status||{}),phase:'error',message:e.message||String(e)};}
+      content.innerHTML=renderUpdate();return;
+    }
+    if(btn.hasAttribute('data-guide')){switchTab('guide');navigate(btn.getAttribute('data-guide'));return;}
     if(btn.getAttribute('data-copy')==='tree') {
       const doc=docs.find(d=>d.id===store.active);if(!doc)return;
       try {if(typeof navigator!=='undefined'&&navigator.clipboard&&navigator.clipboard.writeText)await navigator.clipboard.writeText(doc.tree);
@@ -176,6 +221,7 @@ function mount(root, docs, options={}) {
  };
  const onKey=(e)=>{ if(e.key==='/'&&e.target!==search&&!e.ctrlKey&&!e.metaKey){e.preventDefault();search.focus()}else if(e.key==='Escape'&&e.target===search){search.value='';onInput();search.blur()} };
  root.addEventListener('click',onClick);root.addEventListener('keydown',onKey);search.addEventListener('input',onInput);navigate(store.active);
- return {go:navigate, getState:()=>({...store}),destroy(){search.removeEventListener('input',onInput);root.removeEventListener('click',onClick);root.removeEventListener('keydown',onKey);root.textContent=''}};
+ const poll=setInterval(()=>{void refreshStatus();},450);void refreshStatus();
+ return {go:navigate,showUpdates:()=>switchTab('updates'),getState:()=>({...store}),destroy(){clearInterval(poll);search.removeEventListener('input',onInput);root.removeEventListener('click',onClick);root.removeEventListener('keydown',onKey);root.textContent=''}};
 }
 module.exports={mount,renderPage,diagram,escapeHtml};
