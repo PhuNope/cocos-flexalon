@@ -23,7 +23,7 @@ jobs:
       - name: Upload dev test ZIP (not a Release)
         uses: actions/upload-artifact@v4
         with:
-          name: flexalon-tools-v0.5.4-dev.7
-          path: release/flexalon-tools-v0.5.4-dev.7.zip
+          name: flexalon-tools-dev-build
+          path: release/flexalon-tools-v*.zip
           if-no-files-found: error
           retention-days: 14

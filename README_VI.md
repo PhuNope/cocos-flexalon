@@ -1,8 +1,8 @@
-# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.2
+# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.4
 
 Đây là **một extension duy nhất**, bao gồm:
 
-- 42 file TypeScript runtime Flexalon (Core, Grid/Flexible/Circle/Curve/Align/Random/Shape Layout, Object, Animation, Cloner, Interaction...).
+- 43 file TypeScript runtime Flexalon (Core, Grid/Flexible/Circle/Curve/Align/Random/Shape Layout, Object, Animation, Cloner, Interaction...).
 - Custom Inspector của 18 component Flexalon.
 - Guide Panel tiếng Việt với 19 bài hướng dẫn và hình SVG offline.
 - Các lệnh Inspect Layouts, Refresh Layouts và Open Guide.

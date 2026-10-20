@@ -1,6 +1,6 @@
-# Flexalon Unified Extension v0.5.2 — Cocos Creator >= 3.8.2
+# Flexalon Unified Extension v0.5.4 — Cocos Creator >= 3.8.2
 
-**One extension, everything included.** The package carries all 42 runtime TypeScript files, 18 Custom Inspectors, the Guide Panel, and an offline HTML guide.
+**One extension, everything included.** The package carries all 43 runtime TypeScript files, 18 Custom Inspectors, the Guide Panel, and an offline HTML guide.
 
 ## Install (new project)
 
