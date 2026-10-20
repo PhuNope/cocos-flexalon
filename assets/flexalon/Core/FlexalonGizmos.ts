@@ -1,7 +1,7 @@
 /** Adapter for PhuNope/Cocos-Gizmos v2. Types only: no runtime import or global declaration.
  * The Cocos-Gizmos extension owns the sole Gizmos2D runtime and its global .d.ts bridge.
  */
-import { Color, Node, UITransform, Vec3 } from 'cc';
+import { Canvas, CCObject, Color, Node, UITransform, Vec3 } from 'cc';
 import type { IVec2Like } from 'cc';
 
 export interface Gizmos2DShape {
@@ -12,11 +12,48 @@ export interface Gizmos2DShape {
   drawCircle(node: Node, center: IVec2Like, radius: number): void;
 }
 
-/** Prefer the one existing Cocos-Gizmos extension. When absent, draw nothing. */
-export function flexalonGizmos(): Gizmos2DShape | undefined {
+/**
+ * Cocos-Gizmos uses getComponentInChildren() when resolving its renderer.
+ * Layout parent and child must not share a debug node from the layout tree:
+ * after selecting a child first, the parent can otherwise render with the
+ * child's transform. Use one unsaved, hidden and stable anchor per Canvas.
+ * Only the existing global Gizmos2D runtime is called; no second import.
+ */
+const ANCHOR_NAME = '__FLEXALON_GIZMOS_2D__';
+const anchors = new WeakMap<Node, Node>();
+function anchorFor(node: Node): Node {
+  let owner: Node | null = null;
+  for (let n: Node | null = node; n; n = n.parent) {
+    if (n.getComponent(Canvas)) { owner = n; break; }
+    if (!n.parent) owner = n;
+  }
+  owner ??= node;
+  let anchor = anchors.get(owner);
+  if (anchor?.isValid && anchor.parent === owner) return anchor;
+  anchor = owner.children.find(c => c.name === ANCHOR_NAME && (c.hideFlags & CCObject.Flags.DontSave) !== 0);
+  if (!anchor) {
+    anchor = new Node(ANCHOR_NAME);
+    anchor.hideFlags |= CCObject.Flags.DontSave | CCObject.Flags.HideInHierarchy;
+    anchor.setParent(owner);
+    anchor.setPosition(0, 0, 0);
+  }
+  anchors.set(owner, anchor);
+  return anchor;
+}
+function runtimeGizmos(): Gizmos2DShape | undefined {
   const runtime = (globalThis as unknown as { Gizmos2D?: Gizmos2DShape }).Gizmos2D;
-  return runtime && typeof runtime.beginLocalPosition === 'function' &&
+  return runtime && typeof runtime.beginColor === 'function' &&
     typeof runtime.drawLineList === 'function' ? runtime : undefined;
+}
+const stableGizmos: Gizmos2DShape = {
+  beginColor(node, color) { runtimeGizmos()?.beginColor(anchorFor(node), color); },
+  beginLocalPosition(_node) { /* always world-space; never mutate shared renderer state */ },
+  endLocalPosition(_node) { /* always world-space */ },
+  drawLineList(node, points, close = false) { runtimeGizmos()?.drawLineList(anchorFor(node), points, close); },
+  drawCircle(node, center, radius) { runtimeGizmos()?.drawCircle(anchorFor(node), center, radius); },
+};
+export function flexalonGizmos(): Gizmos2DShape | undefined {
+  return runtimeGizmos() ? stableGizmos : undefined;
 }
 export const boundsColor = new Color(52, 208, 213, 230);
 export const marginColor = new Color(255, 196, 72, 225);

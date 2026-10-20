@@ -126,3 +126,10 @@ Node vẽ tạm của Gizmos không tham gia layout. Chưa hỗ trợ Circle XZ/
 - Nếu vừa có Curve Animator vừa có Flexalon Layout cùng điều khiển một Node, cả hai đều có thể ghi `node.position`; nên chọn một hệ điều khiển chuyển động hoặc cho child đó `Skip Layout`.
 
 Bản dev chưa merge `main` hoặc phát hành Release.
+
+## Dev 0.5.4-dev.1 — sửa Gizmos cha/con và Curve Animator Inspector
+
+- Flexalon vẽ qua Node Gizmos tạm (DontSave, HideInHierarchy) ở cấp Canvas; chọn layout cha → con → cha sẽ không tái sử dụng renderer nằm trong nested layout. Chỉ dùng runtime Cocos-Gizmos cài riêng.
+- Curve Animator: phần **Playback · Pause / Preview** chứa Paused, Preview In Editor, Preview Progress; phần Scene Gizmos chứa Show Gizmos.
+- Để update: tắt Cocos Creator, xóa thư mục `extensions/flexalon-tools` cũ, giải nén ZIP mới vào `extensions/` (đúng đường dẫn `extensions/flexalon-tools/package.json`), rồi mở lại Editor.
+- Đây là **dev 0.5.4-dev.1**; chưa merge main / chưa phát hành Release.
