@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, UITransform } from 'cc';
-import { flexalonGizmos, rect, marginColor } from '../Core/FlexalonGizmos';
+import { syncGizmosSelection, flexalonGizmos, rect, marginColor } from '../Core/FlexalonGizmos';
 const {ccclass,property,menu}=_decorator;
 /** Drop zone placeholder: use CanAccept and onDrop to integrate into game-specific drag/drop logic. */
 @ccclass('Flexalon.FlexalonDragTarget')
@@ -7,7 +7,7 @@ const {ccclass,property,menu}=_decorator;
 export class FlexalonDragTarget extends Component {
     @property({tooltip: 'Vẽ vùng nhận Drop khi chọn Node (cần Cocos-Gizmos v2).',visible:true})
     public showGizmos=true;
-    public onDrawGizmos():void {/* selected only */}
+    public onDrawGizmos():void { syncGizmosSelection(this.node); }
     public onDrawGizmosSelected():void {
       if(!this.showGizmos)return;
       const g=flexalonGizmos(),ui=this.node.getComponent(UITransform);

@@ -133,3 +133,11 @@ Bản dev chưa merge `main` hoặc phát hành Release.
 - Curve Animator: phần **Playback · Pause / Preview** chứa Paused, Preview In Editor, Preview Progress; phần Scene Gizmos chứa Show Gizmos.
 - Để update: tắt Cocos Creator, xóa thư mục `extensions/flexalon-tools` cũ, giải nén ZIP mới vào `extensions/` (đúng đường dẫn `extensions/flexalon-tools/package.json`), rồi mở lại Editor.
 - Đây là **dev 0.5.4-dev.1**; chưa merge main / chưa phát hành Release.
+
+## Dev v0.5.4-dev.2 — Gizmos / Interactable
+- Đổi hoặc bỏ chọn Node sẽ hủy renderer tạm của Flexalon; không copy runtime Cocos-Gizmos.
+- Tắt Child Bounds mặc định để tránh nhiều nét đè lên sprite, tránh Bounds trùng nhau giữa Object và Layout.
+- Tính drag theo local-space của parent gốc, hỗ trợ Canvas scale/rotation. Interactable yêu cầu UITransform, nhận touch trên Sprite con.
+- Khi thả ngoài parent, Keep Outside On Release có hiệu lực cả khi Detach While Dragging tắt.
+- Curve Animator Inspector báo rõ khi asset-db script dump thiếu các thuộc tính Paused/Preview/Gizmos.
+- Tính năng Interactable là cho Preview/Runtime, không phải Move Tool trong Scene Editor.

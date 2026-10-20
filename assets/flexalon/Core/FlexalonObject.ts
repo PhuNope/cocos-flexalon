@@ -1,7 +1,7 @@
 import { _decorator, Enum, Vec3, UITransform } from 'cc';
 import { FlexalonComponent } from './FlexalonComponent';
 import { Directions, SizeType, axisValue, finitePositive } from './FlexalonTypes';
-import { flexalonGizmos, rect, boundsColor, marginColor } from './FlexalonGizmos';
+import { syncGizmosSelection, flexalonGizmos, rect, boundsColor, marginColor } from './FlexalonGizmos';
 const { ccclass, property, executeInEditMode, menu, executionOrder } = _decorator;
 /** Child overrides: explicit sizing, fill ratios, min/max, margins and transform offsets. */
 @ccclass('Flexalon.FlexalonObject')
@@ -11,9 +11,10 @@ const { ccclass, property, executeInEditMode, menu, executionOrder } = _decorato
 export class FlexalonObject extends FlexalonComponent {
     @property({tooltip: 'Vẽ Content Bounds và Margin khi chọn Node (cần Cocos-Gizmos v2).', visible: true})
     public showGizmos = true;
-    public onDrawGizmos(): void { /* selected only */ }
+    public onDrawGizmos():void { syncGizmosSelection(this.node); }
     public onDrawGizmosSelected(): void {
       if (!this.showGizmos || !this.node) return;
+      if (this.node.getComponents('Flexalon.LayoutBase').some(c => c.enabled)) return;
       const g=flexalonGizmos(),ui=this.node.getComponent(UITransform);
       if (!g || !ui) return;
       const x=-ui.anchorX*ui.width,y=-ui.anchorY*ui.height;

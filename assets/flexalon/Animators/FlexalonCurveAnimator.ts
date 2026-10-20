@@ -2,7 +2,7 @@ import { _decorator, Vec3 } from 'cc';
 import { EDITOR } from 'cc/env';
 import { FlexalonComponent } from '../Core/FlexalonComponent';
 import { FlexalonMath } from '../Core/FlexalonMath';
-import { flexalonGizmos, drawLocalCircle, drawLocalLineList, paddingColor, pathColor } from '../Core/FlexalonGizmos';
+import { syncGizmosSelection, flexalonGizmos, drawLocalCircle, drawLocalLineList, paddingColor, pathColor } from '../Core/FlexalonGizmos';
 const { ccclass, property, menu, executeInEditMode } = _decorator;
 /** Moves in the PARENT's local coordinates, so the path must also be drawn in parent-space. */
 @ccclass('Flexalon.FlexalonCurveAnimator')
@@ -28,7 +28,7 @@ export class FlexalonCurveAnimator extends FlexalonComponent {
     public SuspendForDrag():void {this.dragPaused=true;}
     public ResumeAfterDrag():void {this.dragPaused=false;}
 
-    public onDrawGizmos():void { /* selected-only */ }
+    public onDrawGizmos():void { syncGizmosSelection(this.node); }
     public onDrawGizmosSelected():void {
         if(!this.showGizmos || !this.node?.parent)return;
         const parent=this.node.parent;

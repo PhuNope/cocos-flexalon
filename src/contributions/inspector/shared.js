@@ -178,6 +178,8 @@ const style = `
 .fl-row { display:block; margin-top:6px; }
 .fl-row[hidden], .fl-section[hidden] { display:none !important; }
 .fl-row > ui-prop { width:100%; margin:0; }
+.fl-stale { border-left:3px solid #e8a657; background:rgba(197,109,48,.13); padding:10px; margin:8px 0; color:#ffd49c; font-size:11px; line-height:1.5; white-space:normal; }
+.fl-stale[hidden]{display:none!important;}
 .fl-hint { border-left:2px solid #218a9e; margin-top:10px; padding:7px 9px; color:var(--color-normal, #9ca3af); line-height:1.45; background:rgba(31,138,158,.06); font-size:11px; border-radius:0 5px 5px 0; }
 .fl-foot { margin:11px 0 0; display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .fl-version { color:var(--color-normal, #8d94a0); font-size:10px; }
@@ -196,7 +198,7 @@ function makeInspector(name) {
         if (seen.has(f.key)) throw new Error(`Duplicate inspector field ${name}.${f.key}`);
         seen.add(f.key);
     }
-    const selectors = { root:'.fl-root', summary:'.fl-summary', refresh:'.fl-refresh', guide:'.fl-guide-button' };
+    const selectors = { root:'.fl-root', summary:'.fl-summary', refresh:'.fl-refresh', guide:'.fl-guide-button', stale:'.fl-stale' };
     let sectionMarkup='';
     conf.sections.forEach((s,i)=>{
         const sectionId='section'+i;
@@ -210,9 +212,19 @@ function makeInspector(name) {
         sectionMarkup+=`<details class="fl-section fl-${sectionId}" ${s.expanded===false?'':'open'}><summary><span class="fl-icon">${escapeHtml(s.icon||'◇')}</span>${escapeHtml(s.title)}</summary><div class="fl-content">${rows}</div></details>`;
     });
     const icon=conf.kind==='object'?'◈':conf.kind==='layout'?'▦':'✧';
-    const template=`<div class="fl-root"><div class="fl-head"><div class="fl-heading"><div class="fl-mark">${icon}</div><div><div class="fl-brand">FLEXALON</div><div class="fl-title">${escapeHtml(conf.title)}</div></div></div><div class="fl-subtitle">${escapeHtml(conf.subtitle)}</div><div class="fl-summary"></div></div>${sectionMarkup}${conf.note?`<div class="fl-hint">${escapeHtml(conf.note)}</div>`:''}<div class="fl-foot"><span class="fl-version">Cocos · Inspector v0.5.4-dev.1</span><button type="button" class="fl-guide-button">◉ Guide</button><button type="button" class="fl-refresh">↻ Refresh Layouts</button></div></div>`;
+    const template=`<div class="fl-root"><div class="fl-head"><div class="fl-heading"><div class="fl-mark">${icon}</div><div><div class="fl-brand">FLEXALON</div><div class="fl-title">${escapeHtml(conf.title)}</div></div></div><div class="fl-subtitle">${escapeHtml(conf.subtitle)}</div><div class="fl-summary"></div></div><div class="fl-stale" hidden></div>${sectionMarkup}${conf.note?`<div class="fl-hint">${escapeHtml(conf.note)}</div>`:''}<div class="fl-foot"><span class="fl-version">Cocos · Inspector v0.5.4-dev.2</span><button type="button" class="fl-guide-button">◉ Guide</button><button type="button" class="fl-refresh">↻ Refresh Layouts</button></div></div>`;
     function refresh(thisPanel, dump) {
         if (!dump || !dump.value) return;
+        if (thisPanel.$.stale) {
+            const required=name==='FlexalonCurveAnimator'?
+                ['paused','previewInEditor','previewProgress','showGizmos']:[];
+            const missing=required.filter(k=>!dump.value[k]);
+            thisPanel.$.stale.hidden=missing.length===0;
+            if(missing.length)thisPanel.$.stale.textContent=
+                'Editor đang dùng script Curve Animator cũ (thiếu: '+missing.join(', ')+'). '+
+                'Reimport script asset-db, kiểm tra UUID trùng; khởi động lại Editor. '+
+                'Thử thêm Curve Animator vào Node mới để đối chiếu.';
+        }
         for (const f of fields) {
             const prop=dump.value[f.key];
             const row=thisPanel.$['row_'+f.key];

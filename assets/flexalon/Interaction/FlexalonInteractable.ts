@@ -4,10 +4,11 @@ import { FlexalonObject } from '../Core/FlexalonObject';
 import { FlexalonLerpAnimator } from '../Animators/FlexalonLerpAnimator';
 import { FlexalonCurveAnimator } from '../Animators/FlexalonCurveAnimator';
 import { FlexalonDragTarget } from './FlexalonDragTarget';
-const {ccclass,property,menu}= _decorator;
+const {ccclass,property,menu,requireComponent}= _decorator;
 
 /** Drag UI elements across nested layouts. UITransform is needed for hit events. */
 @ccclass('Flexalon.FlexalonInteractable')
+@requireComponent(UITransform)
 @menu('Flexalon/Interactable')
 export class FlexalonInteractable extends FlexalonComponent {
     @property({tooltip: 'Cho phép kéo thả Node UI bằng chuột hoặc touch.',visible:true}) public dragEnabled=true;
@@ -24,6 +25,7 @@ export class FlexalonInteractable extends FlexalonComponent {
     private originalSkip=false;
     private startWorld=new Vec3();
     private startPointer=new Vec3();
+    private startLocal=new Vec3();
     private touchId:number|null=null;
 
     /** LayoutBase reads this, even if the child does not have FlexalonObject. */
@@ -57,12 +59,17 @@ export class FlexalonInteractable extends FlexalonComponent {
     }
     private startDrag(e:EventTouch):void {
         if(!this.dragEnabled || this.dragging || !this.node.parent)return;
-        if(e.target !== this.node)return; // Prevent an ancestor Interactable also dragging.
+        for(let hit:Node|null=e.target as Node;hit && hit!==this.node;hit=hit.parent) {
+            if(hit.getComponent(FlexalonInteractable)?.enabledInHierarchy)return;
+        }
+        const parentUI=this.node.parent.getComponent(UITransform);
+        if(!parentUI)return;
         this.dragging=true;this.moved=false;this.detached=false;
         this.originalParent=this.node.parent;
         this.originalIndex=this.node.getSiblingIndex();
         this.startWorld.set(this.node.worldPosition);
-        this.startPointer.set(this.pointer(e));
+        this.startLocal.set(this.node.position);
+        this.startPointer.set(parentUI.convertToNodeSpaceAR(this.pointer(e)));
         this.touchId=e.getID()??null;
         const obj=this.node.getComponent(FlexalonObject);
         this.originalSkip=obj?.skipLayout??false;
@@ -73,8 +80,11 @@ export class FlexalonInteractable extends FlexalonComponent {
     }
     private moveDrag(e:EventTouch):void {
         if(!this.dragging || !this.matchesTouch(e))return;
-        const p=this.pointer(e);
-        const dx=p.x-this.startPointer.x,dy=p.y-this.startPointer.y;
+        const origin=this.originalParent;
+        const ui=origin?.getComponent(UITransform);
+        if(!origin || !ui)return;
+        const pointerLocal=ui.convertToNodeSpaceAR(this.pointer(e));
+        const dx=pointerLocal.x-this.startPointer.x,dy=pointerLocal.y-this.startPointer.y;
         if(!this.moved && dx*dx+dy*dy<1)return;
         this.moved=true;
         if(!this.detached && this.detachWhileDragging) {
@@ -84,7 +94,9 @@ export class FlexalonInteractable extends FlexalonComponent {
                 this.detached=true;
             }
         }
-        const next=this.startWorld.clone();next.x+=dx;next.y+=dy;
+        const desiredLocal=this.startLocal.clone();
+        desiredLocal.x+=dx;desiredLocal.y+=dy;
+        const next=new Vec3();Vec3.transformMat4(next,desiredLocal,origin.worldMatrix);
         this.node.setWorldPosition(next);
         e.propagationStopped=true;
     }
@@ -178,8 +190,12 @@ export class FlexalonInteractable extends FlexalonComponent {
             target.onDrop(this.node);
         } else {
             const outside=!!(point && origin && origin.getComponent(UITransform) && !inOrigin);
-            const keep=this.detached && this.moved && allowDrop &&
-                this.keepOutsideOnRelease && outside;
+            let keep=this.moved && allowDrop && this.keepOutsideOnRelease && outside;
+            if(keep && !this.detached){
+                const canvas=this.findCanvas();
+                if(canvas && canvas!==origin){this.node.setParent(canvas,true);this.detached=true;}
+                else keep=false;
+            }
             if(!keep && origin && this.node.parent!==origin) {
                 this.node.setParent(origin,true);
                 this.node.setSiblingIndex(Math.min(this.originalIndex,origin.children.length-1));

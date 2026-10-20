@@ -9,7 +9,7 @@ import { FlexalonMath } from './FlexalonMath';
 import { FlexalonModifier } from './FlexalonModifier';
 import { FlexalonLerpAnimator } from '../Animators/FlexalonLerpAnimator';
 import { FlexalonInteractable } from '../Interaction/FlexalonInteractable';
-import { flexalonGizmos, rect, drawLocalLineList, quadInParent, boundsColor, paddingColor, marginColor } from './FlexalonGizmos';
+import { syncGizmosSelection, flexalonGizmos, rect, drawLocalLineList, quadInParent, boundsColor, paddingColor, marginColor } from './FlexalonGizmos';
 const { ccclass, property, executeInEditMode, requireComponent } = _decorator;
 export type Item = { node: Node; object: FlexalonObject | null; size: Vec3; outer: Vec3; marginLeft: number; marginRight: number; marginTop: number; marginBottom: number; marginBack: number; marginFront: number; };
 
@@ -21,10 +21,10 @@ export class LayoutBase extends FlexalonComponent implements Layout {
     @property({tooltip: 'Hiển thị Gizmos khi chọn Node (cần extension Cocos-Gizmos v2).', visible: true})
     public showGizmos = true;
     @property({tooltip: 'Vẽ Content Bounds và Margin của từng child.', visible: true})
-    public showChildBounds = true;
+    public showChildBounds = false;
 
     /** Cocos-Gizmos discovers this hook; Flexalon does not register its own renderer. */
-    public onDrawGizmos(): void { /* selected only */ }
+    public onDrawGizmos():void { syncGizmosSelection(this.node); }
     public onDrawGizmosSelected(): void {
       if (!this.showGizmos || !this.node) return;
       const g = flexalonGizmos(), ui = this.node.getComponent(UITransform);
