@@ -1,8 +1,8 @@
 import { FlexalonObject } from '../Core/FlexalonObject';
-import { _decorator, Enum, Vec3 } from 'cc';
+import { _decorator, Enum, UITransform, Vec3 } from 'cc';
 import { LayoutBase } from '../Core/FlexalonLayoutBase';
 import { ShapeType } from '../Core/FlexalonTypes';
-import { flexalonGizmos, pathColor } from '../Core/FlexalonGizmos';
+import { flexalonGizmos, drawLocalLineList, pathColor } from '../Core/FlexalonGizmos';
 const {ccclass,property,menu,executeInEditMode,requireComponent}=_decorator;
 /** Rectangle perimeter, ellipse perimeter, or regular-polygon boundary. */
 @ccclass('Flexalon.FlexalonShapeLayout')
@@ -28,8 +28,10 @@ export class FlexalonShapeLayout extends LayoutBase {
           points.push({x:Math.cos(a)*w/2,y:Math.sin(a)*h/2});
         }
       }
-      g.beginLocalPosition(this.node);g.beginColor(this.node,pathColor);
-      g.drawLineList(this.node,points,true);g.endLocalPosition(this.node);
+      const ui=this.node.getComponent(UITransform);
+      const center=this.contentCenter(ui?new Vec3(ui.width,ui.height,1):new Vec3());
+      g.beginColor(this.node,pathColor);
+      drawLocalLineList(g,this.node,points.map(p=>({x:p.x+center.x,y:p.y+center.y})),true);
     }
     public measureIntrinsic(available:Vec3):Vec3 {
         // Shape dimensions describe the path of the CHILD CENTERS. Add child

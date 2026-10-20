@@ -25,7 +25,7 @@ export const pathColor = new Color(255, 112, 174, 235);
 
 export function rect(g: Gizmos2DShape, node: Node, x: number, y: number, w: number, h: number): void {
   if (![x,y,w,h].every(Number.isFinite) || w < 0 || h < 0) return;
-  g.drawLineList(node,[{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}],true);
+  drawLocalLineList(g,node,[{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}],true);
 }
 
 export function quadInParent(parent: Node, child: Node, margins?: {
@@ -41,4 +41,24 @@ export function quadInParent(parent: Node, child: Node, margins?: {
     parent.inverseTransformPoint(local,world);
     return {x:local.x,y:local.y};
   });
+}
+
+// World-space line helpers avoid the nested Cocos-Gizmos renderer trap:
+// getComponentInChildren() may reuse a GizmosDebugDraw from a descendant.
+// The installed Gizmos runtime transforms these world points to renderer-local.
+export function drawLocalLineList(g: Gizmos2DShape, node: Node, points: ReadonlyArray<IVec2Like>, close = false): void {
+  const mat=node.worldMatrix;
+  g.drawLineList(node, points.map(p=>{
+    const world=new Vec3();
+    Vec3.transformMat4(world,new Vec3(p.x,p.y,0),mat);
+    return {x:world.x,y:world.y};
+  }),close);
+}
+export function drawLocalCircle(g:Gizmos2DShape,node:Node,center:IVec2Like,radius:number):void {
+  if(!Number.isFinite(radius)||radius<=0)return;
+  const p=Array.from({length:24},(_,i)=>{
+    const a=i*Math.PI*2/24;
+    return {x:center.x+Math.cos(a)*radius,y:center.y+Math.sin(a)*radius};
+  });
+  drawLocalLineList(g,node,p,true);
 }

@@ -17,7 +17,6 @@ export class FlexalonObject extends FlexalonComponent {
       const g=flexalonGizmos(),ui=this.node.getComponent(UITransform);
       if (!g || !ui) return;
       const x=-ui.anchorX*ui.width,y=-ui.anchorY*ui.height;
-      g.beginLocalPosition(this.node);
       g.beginColor(this.node,boundsColor);
       rect(g,this.node,x,y,ui.width,ui.height);
       if(this.marginLeft||this.marginRight||this.marginTop||this.marginBottom) {
@@ -25,7 +24,6 @@ export class FlexalonObject extends FlexalonComponent {
         rect(g,this.node,x-this.marginLeft,y-this.marginBottom,
           ui.width+this.marginLeft+this.marginRight,ui.height+this.marginTop+this.marginBottom);
       }
-      g.endLocalPosition(this.node);
     }
     @property({type: Enum(SizeType), tooltip: "Chọn cách tính chiều rộng: Fixed = Size X; Fill = phần còn lại của layout cha; Component = UITransform; Layout = kích thước nội dung layout trên node này.", visible: true}) public widthType: SizeType = SizeType.Component;
     @property({type: Enum(SizeType), tooltip: "Chọn cách tính chiều cao: Fixed = Size Y; Fill = phần còn lại của layout cha; Component = UITransform; Layout = kích thước nội dung layout trên node này.", visible: true}) public heightType: SizeType = SizeType.Component;

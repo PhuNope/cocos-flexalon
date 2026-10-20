@@ -107,3 +107,12 @@ Chọn Node và bật **Show Gizmos** (tùy chọn **Show Child Bounds**) trong 
 Màu cyan: bounds; xanh lá: padding; vàng: margin/vùng drop; hồng: Circle/Curve/Shape.
 Node vẽ tạm của Gizmos không tham gia layout. Chưa hỗ trợ Circle XZ/ZY và kéo handle.
 **Chỉ phát triển trên dev; không merge main, không tạo tag hoặc Release khi chưa chốt.**
+
+## Dev: sửa Gizmos lồng nhau và kéo thả
+
+- Cocos-Gizmos v2 được cài riêng; Flexalon gửi world-space points để vẽ đúng khi layout cha/con khác scale/rotation, không import runtime Gizmos lần thứ hai.
+- FlexalonInteractable bỏ qua layout khi kéo dù child không có FlexalonObject; có thể dùng hoặc không dùng Lerp Animator (Lerp sẽ tạm dừng trong khi kéo).
+- detachWhileDragging: chuyển tạm sang Canvas (tránh Mask/ScrollView clip), giữ world transform.
+- Drop lên node có FlexalonDragTarget để chuyển parent. Mặc định thả bên ngoài parent mà không có target sẽ giữ dưới Canvas; thả bên trong/Cancel trả về parent cũ.
+- UITransform của node được kéo là bắt buộc để nhận sự kiện touch/mouse. Tính năng này chỉ hỗ trợ UI 2D.
+- Đây là bản dev thử nghiệm: chưa merge main / chưa phát hành Release.

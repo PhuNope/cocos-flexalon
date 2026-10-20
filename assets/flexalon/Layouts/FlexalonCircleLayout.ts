@@ -1,8 +1,8 @@
 import { FlexalonObject } from '../Core/FlexalonObject';
-import { _decorator, CCObject, UITransform, Vec3, Enum } from 'cc';
+import { _decorator, UITransform, Vec3, Enum } from 'cc';
 import { LayoutBase } from '../Core/FlexalonLayoutBase';
 import { CircleRadiusType, CircleSpacingType, Plane } from '../Core/FlexalonTypes';
-import { flexalonGizmos, pathColor } from '../Core/FlexalonGizmos';
+import { flexalonGizmos, drawLocalLineList, drawLocalCircle, pathColor } from '../Core/FlexalonGizmos';
 const { ccclass, property, menu, executeInEditMode, requireComponent } = _decorator;
 
 /**
@@ -51,8 +51,7 @@ export class FlexalonCircleLayout extends LayoutBase {
       const g=flexalonGizmos();if(!g)return;
       const ui=this.node.getComponent(UITransform);
       const origin=this.contentCenter(ui?new Vec3(ui.width,ui.height,1):new Vec3());
-      const n=this.node.children.filter(c=>(c.hideFlags & CCObject.Flags.DontSave)===0 &&
-        (this.includeInactive||c.active) && !c.getComponent(FlexalonObject)?.skipLayout).length;
+      const n=this.items(this.contentSize(ui?new Vec3(ui.width,ui.height,1):new Vec3())).length;
       const start=this.childAngle(0,Math.max(1,n));
       const end=n<=1?start+360:this.childAngle(n-1,n);
       const last=Math.max(1,n-1),segments=Math.max(48,last*8);
@@ -63,12 +62,11 @@ export class FlexalonCircleLayout extends LayoutBase {
           this.radiusType===CircleRadiusType.Wrap?Math.floor(angle/360)*this.radiusStep:0;
         pts.push({x:origin.x+Math.cos(radians)*(this.radiusX+delta),y:origin.y+Math.sin(radians)*(this.radiusY+delta)});
       }
-      g.beginLocalPosition(this.node);g.beginColor(this.node,pathColor);g.drawLineList(this.node,pts);
+      g.beginColor(this.node,pathColor);drawLocalLineList(g,this.node,pts);
       for(let k=0;k<n;k++){
         const angle=this.childAngle(k,n),d=this.childRadiusStep(k,angle),r=angle*Math.PI/180;
-        g.drawCircle(this.node,{x:origin.x+Math.cos(r)*(this.radiusX+d),y:origin.y+Math.sin(r)*(this.radiusY+d)},4);
+        drawLocalCircle(g,this.node,{x:origin.x+Math.cos(r)*(this.radiusX+d),y:origin.y+Math.sin(r)*(this.radiusY+d)},4);
       }
-      g.endLocalPosition(this.node);
     }
 
     /** Absolute angle including start angle (matches Unity's Wrap revolution index). */

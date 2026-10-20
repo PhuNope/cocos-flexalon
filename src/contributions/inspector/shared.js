@@ -117,7 +117,7 @@ const configs = {
   },
   FlexalonInteractable: {
     title:'Interactable',subtitle:'Tương tác chuột / kéo thả',kind:'component',
-    sections:[{title:'Interaction',icon:'✥',fields:['dragEnabled']}]
+    sections:[{title:'Interaction',icon:'✥',fields:['dragEnabled','detachWhileDragging','keepOutsideOnRelease']}]
   },
   Flexalon: {
     title:'Flexalon Manager',subtitle:'Tùy chọn cập nhật hệ thống',kind:'component',
