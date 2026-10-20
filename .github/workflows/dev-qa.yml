@@ -1,0 +1,29 @@
+name: Flexalon Dev QA
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install development dependencies
+        run: npm ci --ignore-scripts
+      - name: Build, behavioral tests and ZIP integrity
+        run: npm run release
+      - name: Upload dev test ZIP (not a Release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: flexalon-tools-dev-build
+          path: release/flexalon-tools-v*.zip
+          if-no-files-found: error
+          retention-days: 14

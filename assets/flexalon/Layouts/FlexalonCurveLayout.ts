@@ -1,8 +1,8 @@
 import { FlexalonObject } from '../Core/FlexalonObject';
-import { _decorator, Vec3 } from 'cc';
+import { _decorator, UITransform, Vec3 } from 'cc';
 import { LayoutBase } from '../Core/FlexalonLayoutBase';
 import { FlexalonMath } from '../Core/FlexalonMath';
-import { flexalonGizmos, pathColor, paddingColor } from '../Core/FlexalonGizmos';
+import { flexalonGizmos, drawLocalLineList, drawLocalCircle, pathColor, paddingColor } from '../Core/FlexalonGizmos';
 const {ccclass,property,menu,executeInEditMode,requireComponent}=_decorator;
 /** Single cubic Bézier segment. Position and optional XY tangent alignment. */
 @ccclass('Flexalon.FlexalonCurveLayout')
@@ -19,14 +19,15 @@ export class FlexalonCurveLayout extends LayoutBase {
     public override onDrawGizmosSelected():void {
       super.onDrawGizmosSelected();if(!this.showGizmos)return;
       const g=flexalonGizmos();if(!g)return;
-      g.beginLocalPosition(this.node);g.beginColor(this.node,paddingColor);
-      g.drawLineList(this.node,[this.point0,this.point1]);
-      g.drawLineList(this.node,[this.point2,this.point3]);
+      const ui=this.node.getComponent(UITransform);
+      const center=this.contentCenter(ui?new Vec3(ui.width,ui.height,1):new Vec3());
+      const shift=(p:Vec3)=>({x:p.x+center.x,y:p.y+center.y});
+      g.beginColor(this.node,paddingColor);
+      drawLocalLineList(g,this.node,[shift(this.point0),shift(this.point1)]);
+      drawLocalLineList(g,this.node,[shift(this.point2),shift(this.point3)]);
       g.beginColor(this.node,pathColor);
-      g.drawLineList(this.node,Array.from({length:65},(_,i)=>
-        FlexalonMath.Bezier(this.point0,this.point1,this.point2,this.point3,i/64)));
-      for(const p of [this.point0,this.point1,this.point2,this.point3])g.drawCircle(this.node,p,5);
-      g.endLocalPosition(this.node);
+      drawLocalLineList(g,this.node,Array.from({length:65},(_,i)=>shift(FlexalonMath.Bezier(this.point0,this.point1,this.point2,this.point3,i/64))));
+      for(const p of [this.point0,this.point1,this.point2,this.point3])drawLocalCircle(g,this.node,shift(p),5);
     }
     public measureIntrinsic(available:Vec3):Vec3 {
         // Approximate the cubic's bounding rectangle with sampled points,

@@ -1,8 +1,8 @@
-# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.2
+# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.4
 
 Đây là **một extension duy nhất**, bao gồm:
 
-- 42 file TypeScript runtime Flexalon (Core, Grid/Flexible/Circle/Curve/Align/Random/Shape Layout, Object, Animation, Cloner, Interaction...).
+- 43 file TypeScript runtime Flexalon (Core, Grid/Flexible/Circle/Curve/Align/Random/Shape Layout, Object, Animation, Cloner, Interaction...).
 - Custom Inspector của 18 component Flexalon.
 - Guide Panel tiếng Việt với 19 bài hướng dẫn và hình SVG offline.
 - Các lệnh Inspect Layouts, Refresh Layouts và Open Guide.
@@ -107,3 +107,77 @@ Chọn Node và bật **Show Gizmos** (tùy chọn **Show Child Bounds**) trong 
 Màu cyan: bounds; xanh lá: padding; vàng: margin/vùng drop; hồng: Circle/Curve/Shape.
 Node vẽ tạm của Gizmos không tham gia layout. Chưa hỗ trợ Circle XZ/ZY và kéo handle.
 **Chỉ phát triển trên dev; không merge main, không tạo tag hoặc Release khi chưa chốt.**
+
+## Dev: sửa Gizmos lồng nhau và kéo thả
+
+- Cocos-Gizmos v2 được cài riêng; Flexalon gửi world-space points để vẽ đúng khi layout cha/con khác scale/rotation, không import runtime Gizmos lần thứ hai.
+- FlexalonInteractable bỏ qua layout khi kéo dù child không có FlexalonObject; có thể dùng hoặc không dùng Lerp Animator (Lerp sẽ tạm dừng trong khi kéo).
+- detachWhileDragging: chuyển tạm sang Canvas (tránh Mask/ScrollView clip), giữ world transform.
+- Drop lên node có FlexalonDragTarget để chuyển parent. Mặc định thả bên ngoài parent mà không có target sẽ giữ dưới Canvas; thả bên trong/Cancel trả về parent cũ.
+- UITransform của node được kéo là bắt buộc để nhận sự kiện touch/mouse. Tính năng này chỉ hỗ trợ UI 2D.
+- Đây là bản dev thử nghiệm: chưa merge main / chưa phát hành Release.
+
+## Dev: Curve Animator Gizmos, Pause và reorder trong layout
+
+- **Curve Animator** có `Show Gizmos`: đường Bézier, tay nắm và marker `Preview Progress` (0..1). Đường được vẽ theo hệ tọa độ **parent** vì `p0..p3` là vị trí local của parent; object chạy trên curve không kéo đường Gizmos chạy theo.
+- `Paused` ngừng update của Curve Animator ở cả Editor và runtime. `Preview In Editor` mặc định **tắt** để không tự chạy khi chỉnh scene; bật lên mới chạy thử trong Editor. `Pause()`, `Resume()`, `Restart()` dùng được bằng script. `Preview Progress` chỉ dịch marker gizmo, không dịch chuyển object.
+- Khi `FlexalonInteractable` bắt đầu kéo, Curve Animator và Lerp Animator tạm dừng; thả/cancel thì tiếp tục.
+- **Reorder Within Layout** (bật mặc định) ở Interactable: khi thả **trong vùng parent layout cũ**, node được đưa lại đúng parent và thay đổi `siblingIndex` theo vị trí thả, rồi layout sắp xếp lại. Hỗ trợ kể cả `Detach While Dragging`; drag ra ngoài parent hoặc sang `Drag Target` vẫn theo logic cũ. Đây là **reorder khi thả**, chưa có placeholder hoặc đổi thứ tự liên tục ngay trong lúc đang kéo.
+- Nếu vừa có Curve Animator vừa có Flexalon Layout cùng điều khiển một Node, cả hai đều có thể ghi `node.position`; nên chọn một hệ điều khiển chuyển động hoặc cho child đó `Skip Layout`.
+
+Bản dev chưa merge `main` hoặc phát hành Release.
+
+## Dev 0.5.4-dev.1 — sửa Gizmos cha/con và Curve Animator Inspector
+
+- Flexalon vẽ qua Node Gizmos tạm (DontSave, HideInHierarchy) ở cấp Canvas; chọn layout cha → con → cha sẽ không tái sử dụng renderer nằm trong nested layout. Chỉ dùng runtime Cocos-Gizmos cài riêng.
+- Curve Animator: phần **Playback · Pause / Preview** chứa Paused, Preview In Editor, Preview Progress; phần Scene Gizmos chứa Show Gizmos.
+- Để update: tắt Cocos Creator, xóa thư mục `extensions/flexalon-tools` cũ, giải nén ZIP mới vào `extensions/` (đúng đường dẫn `extensions/flexalon-tools/package.json`), rồi mở lại Editor.
+- Đây là **dev 0.5.4-dev.1**; chưa merge main / chưa phát hành Release.
+
+## Dev v0.5.4-dev.2 — Gizmos / Interactable
+- Đổi hoặc bỏ chọn Node sẽ hủy renderer tạm của Flexalon; không copy runtime Cocos-Gizmos.
+- Tắt Child Bounds mặc định để tránh nhiều nét đè lên sprite, tránh Bounds trùng nhau giữa Object và Layout.
+- Tính drag theo local-space của parent gốc, hỗ trợ Canvas scale/rotation. Interactable yêu cầu UITransform, nhận touch trên Sprite con.
+- Khi thả ngoài parent, Keep Outside On Release có hiệu lực cả khi Detach While Dragging tắt.
+- Curve Animator Inspector báo rõ khi asset-db script dump thiếu các thuộc tính Paused/Preview/Gizmos.
+- Tính năng Interactable là cho Preview/Runtime, không phải Move Tool trong Scene Editor.
+
+## Dev 0.5.4-dev.3 — Curve Animator Start Position
+
+- Use Start Position: khi bật, Start Position thay đổi P0 thực tế trong hệ local của parent, dịch toàn bộ đường Bézier; khi tắt, dùng P0 như cũ.
+- Start Progress: 0..1, bắt đầu animation tại một điểm trên curve; Loop quay lại Start Progress.
+- Snap To Start In Editor: căn Node vào điểm bắt đầu mà không chạy animation; tắt để chỉnh Transform bằng Move Tool.
+- Ignore Parent Layout: tùy chọn bỏ qua sắp xếp từ Flexalon Layout cha, mặc định tắt để giữ tương thích scene cũ.
+- Gizmos hiển thị start marker, preview marker, đường cong đã dịch theo Start Position.
+- API: Restart(), PlaceAtStart(), PointAt(t), UseCurrentPositionAsStart(). Không merge main hoặc tạo Release ở bản dev.
+
+## Dev v0.5.4-dev.4 — Bước nhảy Slider
+
+Curve Animator: Start Progress và Preview Progress dùng CCFloat với `range:[0,1,0.01]` (bước 1%). Rà soát toàn bộ 43 runtime script và Custom Inspector: hai trường này là toàn bộ slider số thực hiện tại. Max Items Per Line giữ step 1 do là số nguyên. Script `verify-sliders.cjs` chạy cùng npm run verify để tránh tạo lại slider không chỉnh được.
+
+
+
+## Dev v0.5.4-dev.5 — Grid Layout Gizmos
+
+- Grid Layout có phần **Grid Gizmos** trong Inspector: Show Grid, Show Cell Bounds, Show Occupied Cells, Show Grid Gaps và Show Cell Index.
+- Tâm/kích thước của ô dùng **chung `geometry()` và `cellGeometry()`** với `arrangeChildren`, bao gồm Uniform, Fit Children, Start Corner, Hexagonal và GridCell Column/Row Span. Vùng chiếm bởi child có đường màu cam; cell màu cyan; gap màu tím.
+- Hexagonal dùng khung lục giác cho cell đơn; span nhiều cell được thể hiện bằng hình chữ nhật bao vì hệ thống layout tính vùng span theo khung bao.
+- Index hiển thị dạng `column,row` bắt đầu từ 1. Gizmos giới hạn 400 cell, 80 nhãn để không quá tải Cocos Editor. Không cần/copy runtime Cocos-Gizmos thứ hai.
+- Chỉ phát triển trên `dev`, chưa merge `main`, chưa tạo tag hoặc Release.
+
+## Dev 0.5.4-dev.6 — Fill Parent Fallback
+
+- \`FlexalonObject.fillParentFallback\` mặc định tắt để giữ hành vi cũ.
+- Bật với parent chỉ có UITransform: các trục Width/Height Type Fill nhận (Content Size parent - Margin) nhân Fill X/Y, có giới hạn Min/Max.
+- Căn giữa vùng content theo Anchor parent/child và Object Offset. Trục không Fill giữ nguyên.
+- Preserve UI Content Size bật thì không thay Content Size của child.
+- Parent có Flexalon Layout đang bật thì layout có ưu tiên; kéo Interactable thì tạm không điều chỉnh Fill.
+- Cập nhật trong Editor/Runtime khi kích thước parent thay đổi. Chỉ dev; chưa merge main hay tạo Release.
+
+## Dev 0.5.4-dev.7 — Fix Canvas Fill without pre-existing UITransform
+
+- Khi parent là Canvas (hoặc Node thường có `UITransform`) và child có `FlexalonObject` với Width/Height Type = Fill, Fill Parent Fallback mặc định **bật trên component mới**. Trên component đã tạo ở dev.6, Cocos có thể đã serialize `fillParentFallback=false`: bật lại trong Inspector.
+- Nếu child chưa có `UITransform`, fallback sẽ bổ sung **khi thực sự cần** (có ít nhất một trục Fill, parent có UITransform, không có Flexalon Layout đang chạy, không trong trạng thái kéo).
+- Parent Layout vẫn có ưu tiên tuyệt đối; không thêm UITransform cho Node 3D khi không Fill hoặc parent không có UITransform.
+- Tự cập nhật khi Canvas resize; xét margin, min/max, anchor, Fill fraction, Preserve UI Content Size và Offset.
+- Đây là bản thử nghiệm trên dev, chưa merge main hoặc tạo Release.

@@ -1,7 +1,7 @@
 import { _decorator, Enum, Vec3, UITransform } from 'cc';
 import { FlexalonComponent } from './FlexalonComponent';
 import { Directions, SizeType, axisValue, finitePositive } from './FlexalonTypes';
-import { flexalonGizmos, rect, boundsColor, marginColor } from './FlexalonGizmos';
+import { syncGizmosSelection, flexalonGizmos, rect, boundsColor, marginColor } from './FlexalonGizmos';
 const { ccclass, property, executeInEditMode, menu, executionOrder } = _decorator;
 /** Child overrides: explicit sizing, fill ratios, min/max, margins and transform offsets. */
 @ccclass('Flexalon.FlexalonObject')
@@ -11,13 +11,13 @@ const { ccclass, property, executeInEditMode, menu, executionOrder } = _decorato
 export class FlexalonObject extends FlexalonComponent {
     @property({tooltip: 'Vẽ Content Bounds và Margin khi chọn Node (cần Cocos-Gizmos v2).', visible: true})
     public showGizmos = true;
-    public onDrawGizmos(): void { /* selected only */ }
+    public onDrawGizmos():void { syncGizmosSelection(this.node); }
     public onDrawGizmosSelected(): void {
       if (!this.showGizmos || !this.node) return;
+      if (this.node.getComponents('Flexalon.LayoutBase').some(c => c.enabled)) return;
       const g=flexalonGizmos(),ui=this.node.getComponent(UITransform);
       if (!g || !ui) return;
       const x=-ui.anchorX*ui.width,y=-ui.anchorY*ui.height;
-      g.beginLocalPosition(this.node);
       g.beginColor(this.node,boundsColor);
       rect(g,this.node,x,y,ui.width,ui.height);
       if(this.marginLeft||this.marginRight||this.marginTop||this.marginBottom) {
@@ -25,7 +25,6 @@ export class FlexalonObject extends FlexalonComponent {
         rect(g,this.node,x-this.marginLeft,y-this.marginBottom,
           ui.width+this.marginLeft+this.marginRight,ui.height+this.marginTop+this.marginBottom);
       }
-      g.endLocalPosition(this.node);
     }
     @property({type: Enum(SizeType), tooltip: "Chọn cách tính chiều rộng: Fixed = Size X; Fill = phần còn lại của layout cha; Component = UITransform; Layout = kích thước nội dung layout trên node này.", visible: true}) public widthType: SizeType = SizeType.Component;
     @property({type: Enum(SizeType), tooltip: "Chọn cách tính chiều cao: Fixed = Size Y; Fill = phần còn lại của layout cha; Component = UITransform; Layout = kích thước nội dung layout trên node này.", visible: true}) public heightType: SizeType = SizeType.Component;
@@ -45,6 +44,8 @@ export class FlexalonObject extends FlexalonComponent {
     @property({type: Vec3, tooltip: "Cộng thêm góc Euler XYZ (độ) vào rotation do layout tính. Không giữ rotation cũ của child.", visible: true}) public rotationOffset: Vec3 = new Vec3();
     @property({type: Vec3, tooltip: "Nhân tỷ lệ scale XYZ của node sau khi layout sắp xếp.", visible: true}) public scaleMultiplier: Vec3 = new Vec3(1,1,1);
     @property({tooltip: "Bỏ qua node này khi layout cha đo kích thước và sắp xếp các child.", visible: true}) public skipLayout = false;
+    @property({tooltip: 'Khi Width/Height = Fill và parent là UITransform (Canvas hoặc Node UI) không có Flexalon Layout, tự giãn theo parent. Mặc định BẬT cho component mới; Scene cũ đã lưu giá trị false cần bật thủ công.', visible: true, displayName: 'Fill Parent Fallback'})
+    public fillParentFallback = true;
     @property({tooltip: "BẬT: không thay đổi UITransform.width/height. TẮT (khuyên dùng): Flexalon đồng bộ UITransform theo Fixed/Fill/Layout. Có thể gây chênh lệch giữa kích thước layout và kích thước hiển thị khi bật.", visible: true, displayName: "Preserve UI Content Size"}) public preserveUIContentSize = false;
     /**
      * Keep UITransform.contentSize in sync with Fixed X/Y, even when this node
@@ -67,12 +68,79 @@ export class FlexalonObject extends FlexalonComponent {
             ui.setContentSize(width, height);
         }
     }
-    protected onEnable(): void { this.SyncFixedUIContentSize(); }
-    protected lateUpdate(): void { this.SyncFixedUIContentSize(); }
+    /**
+     * Opt-in Fill for a regular UITransform parent (without an active Flexalon
+     * layout). Ordinary Fill is exclusively handled by the parent's layout.
+     *
+     * Sizes and offsets are in parent-local UI units, not world pixel units;
+     * parent scale/rotation therefore work naturally. Poll in edit/play mode
+     * because parent Content Size and serialized child settings can change in
+     * Inspector without invoking a property setter.
+     */
+    public ApplyFillParentFallback(): void {
+        if (!this.fillParentFallback || !this.enabledInHierarchy || !this.node || !this.node.parent) return;
+        const parent = this.node.parent;
+        const parentUI = parent.getComponent(UITransform);
+        if (!parentUI) return;
+        const fillX = this.widthType === SizeType.Fill;
+        const fillY = this.heightType === SizeType.Fill;
+        if (!fillX && !fillY) return;
+        // LayoutBase derives from FlexalonComponent. Check by behavior rather
+        // than importing LayoutBase here (which itself imports FlexalonObject),
+        // to avoid a circular runtime import and handle derived layouts equally.
+        const hasActiveParentLayout = parent.getComponents(FlexalonComponent).some(component => {
+            const layout = component as FlexalonComponent & {
+                arrangeChildren?: unknown;
+                measureIntrinsic?: unknown;
+            };
+            return layout.enabledInHierarchy &&
+                typeof layout.arrangeChildren === 'function' &&
+                typeof layout.measureIntrinsic === 'function';
+        });
+        if (hasActiveParentLayout) return;
+        // Never pull a user-dragged child back to the parent centre.
+        const dragging = this.node.getComponents(FlexalonComponent).some(component =>
+            (component as FlexalonComponent & {IsDragging?: boolean}).IsDragging === true);
+        if (dragging) return;
+        // A UITransform may be absent on a plain Node created beneath Canvas.
+        // Add it only when Fill fallback actually applies; never force a
+        // UITransform onto a 3D FlexalonObject or a child managed by a layout.
+        const ui = this.node.getComponent(UITransform) ?? this.node.addComponent(UITransform);
+        const availableWidth = Math.max(0, parentUI.width - this.marginLeft - this.marginRight);
+        const availableHeight = Math.max(0, parentUI.height - this.marginTop - this.marginBottom);
+        const desiredWidth = fillX ? this.clampSize(0, availableWidth * this.fraction(0)) : ui.width;
+        const desiredHeight = fillY ? this.clampSize(1, availableHeight * this.fraction(1)) : ui.height;
+        if (!this.preserveUIContentSize &&
+            (Math.abs(ui.width - desiredWidth) > 0.0001 || Math.abs(ui.height - desiredHeight) > 0.0001)) {
+            ui.setContentSize(desiredWidth, desiredHeight);
+        }
+        // Align the filled axes to the centre of the parent's content area.
+        // Retain position on axes that are NOT Fill. UITransform anchors are
+        // accounted for so a (0, 0) anchor still starts at the correct edge.
+        const current = this.node.position;
+        const x = fillX ? (0.5 - parentUI.anchorX) * parentUI.width +
+            (this.marginLeft - this.marginRight) * 0.5 +
+            (ui.anchorX - 0.5) * ui.width + this.offset.x : current.x;
+        const y = fillY ? (0.5 - parentUI.anchorY) * parentUI.height +
+            (this.marginBottom - this.marginTop) * 0.5 +
+            (ui.anchorY - 0.5) * ui.height + this.offset.y : current.y;
+        if (Math.abs(current.x - x) > 0.0001 || Math.abs(current.y - y) > 0.0001) {
+            this.node.setPosition(x, y, current.z);
+        }
+    }
+    protected onEnable(): void {
+        this.SyncFixedUIContentSize();
+        this.ApplyFillParentFallback();
+    }
+    protected lateUpdate(): void {
+        this.SyncFixedUIContentSize();
+        this.ApplyFillParentFallback();
+    }
     /** Explicit API for game scripts/editor actions; regular edit/play mode also syncs automatically. */
     public override ForceUpdate(): void {
         super.ForceUpdate();
         this.SyncFixedUIContentSize();
+        this.ApplyFillParentFallback();
     }
     /** Convenience setter: use Fixed for width/height and apply them immediately. */
     public SetFixedSize(width: number, height: number): void {

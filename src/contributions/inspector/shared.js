@@ -20,10 +20,11 @@ const configs = {
       { title: 'Min / Max', icon: '⇳', expanded: false, fields: ['minSize','maxSize'] },
       { title: 'Margin', icon: '□', expanded: false, fields: ['marginLeft','marginRight','marginTop','marginBottom','marginFront','marginBack'] },
       { title: 'Transform', icon: '✧', expanded: false, fields: ['offset','rotationOffset','scaleMultiplier'] },
+      { title: 'Fill Parent Fallback', icon: '⇱', expanded: true, when: 'anyFill', fields: ['fillParentFallback'] },
       { title: 'Advanced', icon: '⚙', expanded: false, fields: ['skipLayout','preserveUIContentSize'] },
       { title: 'Scene Gizmos', icon: '◈', expanded: false, fields: ['showGizmos'] }
     ],
-    note: 'Layout: vừa nội dung. Fill: giãn theo không gian do layout cha phân bổ. Preserve UI Content Size giữ nguyên UITransform.'
+    note: 'Fill Parent Fallback mặc định BẬT cho component mới khi có trục Fill và parent UITransform (kể cả Canvas). Tự bổ sung UITransform cho child nếu thiếu. Component cũ đã lưu false phải bật lại trong nhóm Fill Parent Fallback.'
   },
   FlexalonFlexibleLayout: {
     title: 'Flexible Layout', subtitle: 'Sắp xếp linh hoạt theo trục, hỗ trợ wrap', kind: 'layout',
@@ -42,6 +43,7 @@ const configs = {
       { title: 'Grid Setup', icon: '▦', fields: ['cellType','cellSizing','columns','rows'] },
       { title: 'Placement', icon: '⊞', fields: ['startCorner','startAxis','horizontalAlign','verticalAlign'] },
       { title: 'Spacing', icon: '↔', fields: ['columnGap','rowGap'] },
+      { title: 'Grid Gizmos', icon: '▦', expanded: false, fields: ['showGrid','showCellBounds','showOccupiedCells','showGridGaps','showCellIndex'] },
       ...layoutCommon,
     ],
     note: 'FitChildren tính bề rộng theo cột và chiều cao theo hàng. Hexagonal luôn dùng ô đều (Uniform).'
@@ -104,8 +106,9 @@ const configs = {
     sections:[{title:'Aspect Ratio',icon:'▣',fields:['aspectRatio','driveHeight']}]
   },
   FlexalonCurveAnimator: {
-    title:'Curve Animator',subtitle:'Chuyển động trên đường Bézier',kind:'component',
-    sections:[{title:'Curve',icon:'⌁',fields:['p0','p1','p2','p3']},{title:'Playback',icon:'▶',fields:['duration','loop']}]
+    title:'Curve Animator',subtitle:'Bézier · Pause và Preview trong Editor',kind:'component',
+    sections:[{title:'Curve',icon:'⌁',fields:['p0','p1','p2','p3']},{title:'Start Position',icon:'◎',fields:['useStartPosition',{key:'startPosition',when:'customCurveStart'},'startProgress','snapToStartInEditor','ignoreParentLayout']},{title:'Playback · Pause / Preview',icon:'▶',fields:['duration','loop','paused','previewInEditor','previewProgress']},{title:'Scene Gizmos',icon:'◈',fields:['showGizmos']}],
+    note: 'Use Start Position dịch cả Bézier để P0 ở đúng Start Position (local parent). Start Progress chọn phần đường bắt đầu. Snap To Start In Editor đặt Node vào vị trí khởi đầu khi không preview. Với Layout cha, bật Ignore Parent Layout để tránh ghi đè vị trí.'
   },
   FlexalonLerpAnimator: {
     title:'Lerp Animator',subtitle:'Chuyển động mượt đến vị trí layout',kind:'component',
@@ -117,7 +120,7 @@ const configs = {
   },
   FlexalonInteractable: {
     title:'Interactable',subtitle:'Tương tác chuột / kéo thả',kind:'component',
-    sections:[{title:'Interaction',icon:'✥',fields:['dragEnabled']}]
+    sections:[{title:'Interaction',icon:'✥',fields:['dragEnabled','detachWhileDragging','keepOutsideOnRelease','reorderWithinLayout']}]
   },
   Flexalon: {
     title:'Flexalon Manager',subtitle:'Tùy chọn cập nhật hệ thống',kind:'component',
@@ -138,6 +141,7 @@ const rule = {
     spacingEven: (d) => Number(valueOf(d,'spacingType')) === 1,
     polygon: (d) => Number(valueOf(d,'shape')) === 2,
     notRectangle: (d) => Number(valueOf(d,'shape')) !== 0,
+    customCurveStart: (d) => valueOf(d,'useStartPosition') === true,
 };
 const check = (name,d) => !name || !rule[name] || rule[name](d);
 
@@ -177,6 +181,8 @@ const style = `
 .fl-row { display:block; margin-top:6px; }
 .fl-row[hidden], .fl-section[hidden] { display:none !important; }
 .fl-row > ui-prop { width:100%; margin:0; }
+.fl-stale { border-left:3px solid #e8a657; background:rgba(197,109,48,.13); padding:10px; margin:8px 0; color:#ffd49c; font-size:11px; line-height:1.5; white-space:normal; }
+.fl-stale[hidden]{display:none!important;}
 .fl-hint { border-left:2px solid #218a9e; margin-top:10px; padding:7px 9px; color:var(--color-normal, #9ca3af); line-height:1.45; background:rgba(31,138,158,.06); font-size:11px; border-radius:0 5px 5px 0; }
 .fl-foot { margin:11px 0 0; display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .fl-version { color:var(--color-normal, #8d94a0); font-size:10px; }
@@ -195,7 +201,7 @@ function makeInspector(name) {
         if (seen.has(f.key)) throw new Error(`Duplicate inspector field ${name}.${f.key}`);
         seen.add(f.key);
     }
-    const selectors = { root:'.fl-root', summary:'.fl-summary', refresh:'.fl-refresh', guide:'.fl-guide-button' };
+    const selectors = { root:'.fl-root', summary:'.fl-summary', refresh:'.fl-refresh', guide:'.fl-guide-button', stale:'.fl-stale' };
     let sectionMarkup='';
     conf.sections.forEach((s,i)=>{
         const sectionId='section'+i;
@@ -209,9 +215,19 @@ function makeInspector(name) {
         sectionMarkup+=`<details class="fl-section fl-${sectionId}" ${s.expanded===false?'':'open'}><summary><span class="fl-icon">${escapeHtml(s.icon||'◇')}</span>${escapeHtml(s.title)}</summary><div class="fl-content">${rows}</div></details>`;
     });
     const icon=conf.kind==='object'?'◈':conf.kind==='layout'?'▦':'✧';
-    const template=`<div class="fl-root"><div class="fl-head"><div class="fl-heading"><div class="fl-mark">${icon}</div><div><div class="fl-brand">FLEXALON</div><div class="fl-title">${escapeHtml(conf.title)}</div></div></div><div class="fl-subtitle">${escapeHtml(conf.subtitle)}</div><div class="fl-summary"></div></div>${sectionMarkup}${conf.note?`<div class="fl-hint">${escapeHtml(conf.note)}</div>`:''}<div class="fl-foot"><span class="fl-version">Cocos · Inspector v0.5.3</span><button type="button" class="fl-guide-button">◉ Guide</button><button type="button" class="fl-refresh">↻ Refresh Layouts</button></div></div>`;
+    const template=`<div class="fl-root"><div class="fl-head"><div class="fl-heading"><div class="fl-mark">${icon}</div><div><div class="fl-brand">FLEXALON</div><div class="fl-title">${escapeHtml(conf.title)}</div></div></div><div class="fl-subtitle">${escapeHtml(conf.subtitle)}</div><div class="fl-summary"></div></div><div class="fl-stale" hidden></div>${sectionMarkup}${conf.note?`<div class="fl-hint">${escapeHtml(conf.note)}</div>`:''}<div class="fl-foot"><span class="fl-version">Cocos · Inspector v0.5.4</span><button type="button" class="fl-guide-button">◉ Guide</button><button type="button" class="fl-refresh">↻ Refresh Layouts</button></div></div>`;
     function refresh(thisPanel, dump) {
         if (!dump || !dump.value) return;
+        if (thisPanel.$.stale) {
+            const required=name==='FlexalonCurveAnimator'?
+                ['paused','previewInEditor','previewProgress','showGizmos','useStartPosition','startProgress','snapToStartInEditor','ignoreParentLayout']:[];
+            const missing=required.filter(k=>!dump.value[k]);
+            thisPanel.$.stale.hidden=missing.length===0;
+            if(missing.length)thisPanel.$.stale.textContent=
+                'Editor đang dùng script Curve Animator cũ (thiếu: '+missing.join(', ')+'). '+
+                'Reimport script asset-db, kiểm tra UUID trùng; khởi động lại Editor. '+
+                'Thử thêm Curve Animator vào Node mới để đối chiếu.';
+        }
         for (const f of fields) {
             const prop=dump.value[f.key];
             const row=thisPanel.$['row_'+f.key];

@@ -8,7 +8,9 @@ import { defaultAdapter } from './FlexalonAdapter';
 import { FlexalonMath } from './FlexalonMath';
 import { FlexalonModifier } from './FlexalonModifier';
 import { FlexalonLerpAnimator } from '../Animators/FlexalonLerpAnimator';
-import { flexalonGizmos, rect, quadInParent, boundsColor, paddingColor, marginColor } from './FlexalonGizmos';
+import { FlexalonCurveAnimator } from '../Animators/FlexalonCurveAnimator';
+import { FlexalonInteractable } from '../Interaction/FlexalonInteractable';
+import { syncGizmosSelection, flexalonGizmos, rect, drawLocalLineList, quadInParent, boundsColor, paddingColor, marginColor } from './FlexalonGizmos';
 const { ccclass, property, executeInEditMode, requireComponent } = _decorator;
 export type Item = { node: Node; object: FlexalonObject | null; size: Vec3; outer: Vec3; marginLeft: number; marginRight: number; marginTop: number; marginBottom: number; marginBack: number; marginFront: number; };
 
@@ -20,16 +22,15 @@ export class LayoutBase extends FlexalonComponent implements Layout {
     @property({tooltip: 'Hiển thị Gizmos khi chọn Node (cần extension Cocos-Gizmos v2).', visible: true})
     public showGizmos = true;
     @property({tooltip: 'Vẽ Content Bounds và Margin của từng child.', visible: true})
-    public showChildBounds = true;
+    public showChildBounds = false;
 
     /** Cocos-Gizmos discovers this hook; Flexalon does not register its own renderer. */
-    public onDrawGizmos(): void { /* selected only */ }
+    public onDrawGizmos():void { syncGizmosSelection(this.node); }
     public onDrawGizmosSelected(): void {
       if (!this.showGizmos || !this.node) return;
       const g = flexalonGizmos(), ui = this.node.getComponent(UITransform);
       if (!g || !ui) return;
       const x = -ui.anchorX * ui.width, y = -ui.anchorY * ui.height;
-      g.beginLocalPosition(this.node);
       g.beginColor(this.node, boundsColor);
       rect(g, this.node, x, y, ui.width, ui.height);
       g.beginColor(this.node, paddingColor);
@@ -41,19 +42,19 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         if ((child.hideFlags & CCObject.Flags.DontSave) !== 0 ||
           (!child.active && !this.includeInactive)) continue;
         const obj = child.getComponent(FlexalonObject);
-        if (obj?.skipLayout) continue;
+        if (obj?.skipLayout || child.getComponent(FlexalonInteractable)?.IsDragging ||
+          (child.getComponent(FlexalonCurveAnimator)?.enabledInHierarchy && child.getComponent(FlexalonCurveAnimator)?.ignoreParentLayout)) continue;
         const pts = quadInParent(this.node, child);
         if (!pts) continue;
         g.beginColor(this.node, boundsColor);
-        g.drawLineList(this.node, pts, true);
+        drawLocalLineList(g, this.node, pts, true);
         if (obj && (obj.marginLeft || obj.marginRight || obj.marginTop || obj.marginBottom)) {
           const m = quadInParent(this.node, child, {
             left:obj.marginLeft, right:obj.marginRight, top:obj.marginTop, bottom:obj.marginBottom
           });
-          if (m) { g.beginColor(this.node, marginColor); g.drawLineList(this.node, m, true); }
+          if (m) { g.beginColor(this.node, marginColor); drawLocalLineList(g, this.node, m, true); }
         }
       }
-      g.endLocalPosition(this.node);
     }
     @property({tooltip: "Tự tính lại và sắp xếp child khi chạy / ở Edit Mode. Tắt nếu muốn gọi ForceUpdate() thủ công.", visible: true}) public autoUpdate = true;
     @property({tooltip: "Tính cả child inactive khi đo và sắp xếp layout.", visible: true}) public includeInactive = false;
@@ -127,7 +128,8 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         return new Vec3(x+(this.paddingLeft-this.paddingRight)*0.5, y+(this.paddingBottom-this.paddingTop)*0.5, (this.paddingBack-this.paddingFront)*0.5);
     }
     protected items(available: Vec3, measuringIntrinsic = false): Item[] {
-        return this.node.children.filter(n=>(n.hideFlags & CCObject.Flags.DontSave)===0).filter(n=>this.includeInactive || n.active).filter(n=>!n.getComponent(FlexalonObject)?.skipLayout).map(n=>this.measureItem(n,available,measuringIntrinsic));
+        return this.node.children.filter(n=>(n.hideFlags & CCObject.Flags.DontSave)===0).filter(n=>this.includeInactive || n.active).filter(n=>!n.getComponent(FlexalonObject)?.skipLayout && !n.getComponent(FlexalonInteractable)?.IsDragging &&
+            !(n.getComponent(FlexalonCurveAnimator)?.enabledInHierarchy && n.getComponent(FlexalonCurveAnimator)?.ignoreParentLayout)).map(n=>this.measureItem(n,available,measuringIntrinsic));
     }
     protected measureItem(node: Node, available: Vec3, measuringIntrinsic = false): Item {
         const obj=node.getComponent(FlexalonObject);
