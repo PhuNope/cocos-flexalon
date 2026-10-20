@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Independent installer, copied to <project>/.flexalon-updater/task-*/ before
+ * Independent installer, copied to <project>/.flexalon-updater/task-<id>/ before
  * execution. Builtin Node.js modules only. Never import the extension itself.
  */
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
