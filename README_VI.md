@@ -1,4 +1,4 @@
-# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.4
+# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.5
 
 Đây là **một extension duy nhất**, bao gồm:
 
@@ -192,3 +192,12 @@ Curve Animator: Start Progress và Preview Progress dùng CCFloat với `range:[
 - Sau khi cài/backup thành công, yêu cầu Editor đóng bình thường. Chỉ **sau khi Editor đã thoát**, Helper xóa `temp/`, `library/`; janitor độc lập chờ Helper thoát rồi xóa toàn bộ `.flexalon-updater/` (bao gồm backup) khi mọi bước thành công.
 - Không động đến `assets/`, `settings/`, `local/`, `build/`. Nếu lỗi cập nhật thì rollback và giữ backup/log; nếu Editor không đóng thì **không xóa cache**.
 - Trên nhánh dev sẽ dùng version `0.5.5-dev.1`. Release v0.5.4 sẽ không bị xem là bản mới hơn. Để test luồng tự update v0.5.4, dùng bản fake riêng; chưa merge main/Release.
+
+
+## Release v0.5.5 — Auto Updater
+
+- Kiểm tra bản Release mới nhất trên GitHub khi mở project và có mục **Check for Updates** trong Extensions → Flexalon, kèm tab **Check Update** ở Guide Panel.
+- Update Now cho phép tải ZIP chính thức, hiển thị % / dung lượng, kiểm tra CRC / version / an toàn đường dẫn và ghi đè extension bằng Helper độc lập ngoài `extensions/flexalon-tools/`.
+- Sau khi cài thành công, yêu cầu Editor đóng. Chỉ khi Editor thực sự thoát, Helper mới xóa `temp/`, `library/`; tiến trình độc lập tiếp tục xóa toàn bộ `.flexalon-updater/` kể cả backup/log.
+- Khi lỗi thay thế, updater rollback và giữ dữ liệu backup/log. Không xóa `assets/`, `settings/`, `local/`, `build/`.
+- Nên lưu Scene và backup project trước khi Update. Lần mở sau có thể import tài nguyên lâu hơn; chưa kiểm chứng trực tiếp tình huống đóng Editor trong Cocos Creator trên Windows.
