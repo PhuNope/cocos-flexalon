@@ -1,7 +1,8 @@
 import { FlexalonObject } from '../Core/FlexalonObject';
-import { _decorator, Vec3, Enum } from 'cc';
+import { _decorator, CCObject, UITransform, Vec3, Enum } from 'cc';
 import { LayoutBase } from '../Core/FlexalonLayoutBase';
 import { CircleRadiusType, CircleSpacingType, Plane } from '../Core/FlexalonTypes';
+import { flexalonGizmos, pathColor } from '../Core/FlexalonGizmos';
 const { ccclass, property, menu, executeInEditMode, requireComponent } = _decorator;
 
 /**
@@ -43,6 +44,32 @@ export class FlexalonCircleLayout extends LayoutBase {
 
     @property({tooltip: 'Xoay child theo tiếp tuyến khi Plane = XY. Không áp dụng cho XZ/ZY trong bản port này.', visible: true})
     public rotateToTangent = false;
+
+    public override onDrawGizmosSelected():void {
+      super.onDrawGizmosSelected();
+      if(!this.showGizmos || this.plane!==Plane.XY)return;
+      const g=flexalonGizmos();if(!g)return;
+      const ui=this.node.getComponent(UITransform);
+      const origin=this.contentCenter(ui?new Vec3(ui.width,ui.height,1):new Vec3());
+      const n=this.node.children.filter(c=>(c.hideFlags & CCObject.Flags.DontSave)===0 &&
+        (this.includeInactive||c.active) && !c.getComponent(FlexalonObject)?.skipLayout).length;
+      const start=this.childAngle(0,Math.max(1,n));
+      const end=n<=1?start+360:this.childAngle(n-1,n);
+      const last=Math.max(1,n-1),segments=Math.max(48,last*8);
+      const pts:{x:number;y:number}[]=[];
+      for(let i=0;i<=segments;i++){
+        const t=i/segments,angle=start+(end-start)*t,radians=angle*Math.PI/180;
+        const delta=this.radiusType===CircleRadiusType.Step?last*t*this.radiusStep:
+          this.radiusType===CircleRadiusType.Wrap?Math.floor(angle/360)*this.radiusStep:0;
+        pts.push({x:origin.x+Math.cos(radians)*(this.radiusX+delta),y:origin.y+Math.sin(radians)*(this.radiusY+delta)});
+      }
+      g.beginLocalPosition(this.node);g.beginColor(this.node,pathColor);g.drawLineList(this.node,pts);
+      for(let k=0;k<n;k++){
+        const angle=this.childAngle(k,n),d=this.childRadiusStep(k,angle),r=angle*Math.PI/180;
+        g.drawCircle(this.node,{x:origin.x+Math.cos(r)*(this.radiusX+d),y:origin.y+Math.sin(r)*(this.radiusY+d)},4);
+      }
+      g.endLocalPosition(this.node);
+    }
 
     /** Absolute angle including start angle (matches Unity's Wrap revolution index). */
     private childAngle(index: number, count: number): number {

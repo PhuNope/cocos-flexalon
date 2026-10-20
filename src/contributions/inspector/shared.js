@@ -5,6 +5,7 @@
 
 const layoutCommon = [
     { title: 'Layout Settings', icon: '⚙', expanded: false, fields: ['autoUpdate','includeInactive'] },
+    { title: 'Scene Gizmos', icon: '◈', expanded: false, fields: ['showGizmos','showChildBounds'] },
     { title: 'Padding', icon: '▣', expanded: false, fields: ['paddingLeft','paddingRight','paddingTop','paddingBottom','paddingFront','paddingBack'] },
 ];
 
@@ -19,7 +20,8 @@ const configs = {
       { title: 'Min / Max', icon: '⇳', expanded: false, fields: ['minSize','maxSize'] },
       { title: 'Margin', icon: '□', expanded: false, fields: ['marginLeft','marginRight','marginTop','marginBottom','marginFront','marginBack'] },
       { title: 'Transform', icon: '✧', expanded: false, fields: ['offset','rotationOffset','scaleMultiplier'] },
-      { title: 'Advanced', icon: '⚙', expanded: false, fields: ['skipLayout','preserveUIContentSize'] }
+      { title: 'Advanced', icon: '⚙', expanded: false, fields: ['skipLayout','preserveUIContentSize'] },
+      { title: 'Scene Gizmos', icon: '◈', expanded: false, fields: ['showGizmos'] }
     ],
     note: 'Layout: vừa nội dung. Fill: giãn theo không gian do layout cha phân bổ. Preserve UI Content Size giữ nguyên UITransform.'
   },
@@ -111,7 +113,7 @@ const configs = {
   },
   FlexalonDragTarget: {
     title:'Drag Target',subtitle:'Vùng nhận drag & drop',kind:'component',
-    sections:[{title:'Drop',icon:'⤵',fields:['acceptDrop']}]
+    sections:[{title:'Drop',icon:'⤵',fields:['acceptDrop']},{title:'Scene Gizmos',icon:'◈',fields:['showGizmos']}]
   },
   FlexalonInteractable: {
     title:'Interactable',subtitle:'Tương tác chuột / kéo thả',kind:'component',

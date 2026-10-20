@@ -2,6 +2,7 @@ import { FlexalonObject } from '../Core/FlexalonObject';
 import { _decorator, Enum, Vec3 } from 'cc';
 import { LayoutBase } from '../Core/FlexalonLayoutBase';
 import { ShapeType } from '../Core/FlexalonTypes';
+import { flexalonGizmos, pathColor } from '../Core/FlexalonGizmos';
 const {ccclass,property,menu,executeInEditMode,requireComponent}=_decorator;
 /** Rectangle perimeter, ellipse perimeter, or regular-polygon boundary. */
 @ccclass('Flexalon.FlexalonShapeLayout')
@@ -14,6 +15,22 @@ export class FlexalonShapeLayout extends LayoutBase {
     @property({tooltip: "Chiều cao của đường bao được sử dụng để phân bố tâm child.", visible: true}) public height=200;
     @property({tooltip: "Số cạnh của Polygon (tối thiểu 3); chỉ hiện khi chọn Polygon.", visible: function(this: FlexalonShapeLayout): boolean { return this.shape === ShapeType.Polygon; }}) public sides=6;
     @property({tooltip: "Góc bắt đầu của Ellipse hoặc Polygon (độ); Rectangle không dùng.", visible: function(this: FlexalonShapeLayout): boolean { return this.shape !== ShapeType.Rectangle; }}) public startAngle=-90;
+    public override onDrawGizmosSelected():void {
+      super.onDrawGizmosSelected();if(!this.showGizmos)return;
+      const g=flexalonGizmos();if(!g)return;
+      const w=Math.max(0,this.width),h=Math.max(0,this.height),points:{x:number;y:number}[]=[];
+      if(this.shape===ShapeType.Rectangle)
+        points.push({x:-w/2,y:-h/2},{x:w/2,y:-h/2},{x:w/2,y:h/2},{x:-w/2,y:h/2});
+      else {
+        const steps=this.shape===ShapeType.Ellipse?64:Math.max(3,Math.floor(this.sides));
+        for(let i=0;i<steps;i++){
+          const a=(this.startAngle+360*i/steps)*Math.PI/180;
+          points.push({x:Math.cos(a)*w/2,y:Math.sin(a)*h/2});
+        }
+      }
+      g.beginLocalPosition(this.node);g.beginColor(this.node,pathColor);
+      g.drawLineList(this.node,points,true);g.endLocalPosition(this.node);
+    }
     public measureIntrinsic(available:Vec3):Vec3 {
         // Shape dimensions describe the path of the CHILD CENTERS. Add child
         // bounds so Layout size contains the actual rendered rectangles.
