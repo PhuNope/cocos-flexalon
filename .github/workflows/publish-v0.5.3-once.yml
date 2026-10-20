@@ -1,0 +1,69 @@
+name: Approved Flexalon v0.5.3 release (one-time)
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish_approved_053:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout merged main
+        uses: actions/checkout@v4
+
+      - name: Confirm approved version and existing release
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          if [ "$version" != "0.5.3" ]; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if gh release view "v0.5.3" >/dev/null 2>&1; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node
+        if: steps.gate.outputs.release == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install build dependencies
+        if: steps.gate.outputs.release == 'true'
+        run: npm ci --ignore-scripts
+
+      - name: Check tag and build package
+        if: steps.gate.outputs.release == 'true'
+        run: |
+          node scripts/check-version.cjs v0.5.3
+          npm run release
+          npm run release:check
+
+      # GitHub's token does not trigger another tag workflow when it creates a tag.
+      - name: Create v0.5.3 Git tag and GitHub Release
+        if: steps.gate.outputs.release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "v0.5.3" >/dev/null 2>&1; then
+            echo "Release already exists."
+            exit 0
+          fi
+          gh release create "v0.5.3" \
+            "release/flexalon-tools-v0.5.3.zip" \
+            --target "$GITHUB_SHA" \
+            --title "Flexalon Cocos v0.5.3" \
+            --generate-notes

@@ -5,6 +5,7 @@
 
 const layoutCommon = [
     { title: 'Layout Settings', icon: '⚙', expanded: false, fields: ['autoUpdate','includeInactive'] },
+    { title: 'Scene Gizmos', icon: '◈', expanded: false, fields: ['showGizmos','showChildBounds'] },
     { title: 'Padding', icon: '▣', expanded: false, fields: ['paddingLeft','paddingRight','paddingTop','paddingBottom','paddingFront','paddingBack'] },
 ];
 
@@ -19,7 +20,8 @@ const configs = {
       { title: 'Min / Max', icon: '⇳', expanded: false, fields: ['minSize','maxSize'] },
       { title: 'Margin', icon: '□', expanded: false, fields: ['marginLeft','marginRight','marginTop','marginBottom','marginFront','marginBack'] },
       { title: 'Transform', icon: '✧', expanded: false, fields: ['offset','rotationOffset','scaleMultiplier'] },
-      { title: 'Advanced', icon: '⚙', expanded: false, fields: ['skipLayout','preserveUIContentSize'] }
+      { title: 'Advanced', icon: '⚙', expanded: false, fields: ['skipLayout','preserveUIContentSize'] },
+      { title: 'Scene Gizmos', icon: '◈', expanded: false, fields: ['showGizmos'] }
     ],
     note: 'Layout: vừa nội dung. Fill: giãn theo không gian do layout cha phân bổ. Preserve UI Content Size giữ nguyên UITransform.'
   },
@@ -111,7 +113,7 @@ const configs = {
   },
   FlexalonDragTarget: {
     title:'Drag Target',subtitle:'Vùng nhận drag & drop',kind:'component',
-    sections:[{title:'Drop',icon:'⤵',fields:['acceptDrop']}]
+    sections:[{title:'Drop',icon:'⤵',fields:['acceptDrop']},{title:'Scene Gizmos',icon:'◈',fields:['showGizmos']}]
   },
   FlexalonInteractable: {
     title:'Interactable',subtitle:'Tương tác chuột / kéo thả',kind:'component',
@@ -207,7 +209,7 @@ function makeInspector(name) {
         sectionMarkup+=`<details class="fl-section fl-${sectionId}" ${s.expanded===false?'':'open'}><summary><span class="fl-icon">${escapeHtml(s.icon||'◇')}</span>${escapeHtml(s.title)}</summary><div class="fl-content">${rows}</div></details>`;
     });
     const icon=conf.kind==='object'?'◈':conf.kind==='layout'?'▦':'✧';
-    const template=`<div class="fl-root"><div class="fl-head"><div class="fl-heading"><div class="fl-mark">${icon}</div><div><div class="fl-brand">FLEXALON</div><div class="fl-title">${escapeHtml(conf.title)}</div></div></div><div class="fl-subtitle">${escapeHtml(conf.subtitle)}</div><div class="fl-summary"></div></div>${sectionMarkup}${conf.note?`<div class="fl-hint">${escapeHtml(conf.note)}</div>`:''}<div class="fl-foot"><span class="fl-version">Cocos · Inspector v0.5.2</span><button type="button" class="fl-guide-button">◉ Guide</button><button type="button" class="fl-refresh">↻ Refresh Layouts</button></div></div>`;
+    const template=`<div class="fl-root"><div class="fl-head"><div class="fl-heading"><div class="fl-mark">${icon}</div><div><div class="fl-brand">FLEXALON</div><div class="fl-title">${escapeHtml(conf.title)}</div></div></div><div class="fl-subtitle">${escapeHtml(conf.subtitle)}</div><div class="fl-summary"></div></div>${sectionMarkup}${conf.note?`<div class="fl-hint">${escapeHtml(conf.note)}</div>`:''}<div class="fl-foot"><span class="fl-version">Cocos · Inspector v0.5.3</span><button type="button" class="fl-guide-button">◉ Guide</button><button type="button" class="fl-refresh">↻ Refresh Layouts</button></div></div>`;
     function refresh(thisPanel, dump) {
         if (!dump || !dump.value) return;
         for (const f of fields) {

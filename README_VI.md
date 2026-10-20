@@ -95,3 +95,15 @@ npm run release:files
 Thay đổi danh sách file được đóng gói ở `scripts/release-manifest.cjs`. Cơ chế này dùng allowlist, không đóng gói cả thư mục `src` hoặc `scripts` một cách tùy tiện.
 
 **Khi nào workflow chạy?** Push branch (`git push origin main`) **không** tạo Release; chỉ push Git tag `v*` trùng `package.json.version` hoặc chạy workflow thủ công với tag hợp lệ mới build và đăng ZIP lên GitHub Release. Tag đã phát hành trước đó không nên ghi đè. Tăng version và tạo tag mới cho bản tiếp theo.
+
+## Nhánh dev — Gizmos trong Scene View
+
+Cài riêng [PhuNope/Cocos-Gizmos](https://github.com/PhuNope/Cocos-Gizmos) v2.0.0 trên Cocos Creator >=3.8.2.
+Flexalon chỉ sử dụng kiểu TypeScript tương thích và gọi `globalThis.Gizmos2D` đã tồn tại.
+Không copy runtime Gizmos, không import Gizmos.js, không khai báo global trùng lặp.
+Nếu chưa cài Cocos-Gizmos, layout vẫn hoạt động nhưng không vẽ Gizmos.
+
+Chọn Node và bật **Show Gizmos** (tùy chọn **Show Child Bounds**) trong Custom Inspector.
+Màu cyan: bounds; xanh lá: padding; vàng: margin/vùng drop; hồng: Circle/Curve/Shape.
+Node vẽ tạm của Gizmos không tham gia layout. Chưa hỗ trợ Circle XZ/ZY và kéo handle.
+**Chỉ phát triển trên dev; không merge main, không tạo tag hoặc Release khi chưa chốt.**

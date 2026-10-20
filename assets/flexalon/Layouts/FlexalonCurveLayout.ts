@@ -2,6 +2,7 @@ import { FlexalonObject } from '../Core/FlexalonObject';
 import { _decorator, Vec3 } from 'cc';
 import { LayoutBase } from '../Core/FlexalonLayoutBase';
 import { FlexalonMath } from '../Core/FlexalonMath';
+import { flexalonGizmos, pathColor, paddingColor } from '../Core/FlexalonGizmos';
 const {ccclass,property,menu,executeInEditMode,requireComponent}=_decorator;
 /** Single cubic Bézier segment. Position and optional XY tangent alignment. */
 @ccclass('Flexalon.FlexalonCurveLayout')
@@ -15,6 +16,18 @@ export class FlexalonCurveLayout extends LayoutBase {
     @property({type:Vec3, tooltip: "Điểm cuối P3 của đường cong Bézier bậc ba.", visible: true}) public point3=new Vec3(150,0,0);
     @property({tooltip: "Xoay child theo tiếp tuyến đường cong trên mặt phẳng XY.", visible: true}) public orientAlongCurve=false;
     @property({tooltip: "Phân bố child đều theo độ dài cung (xấp xỉ); tắt để phân bố đều theo tham số t.", visible: true}) public uniformDistance=true;
+    public override onDrawGizmosSelected():void {
+      super.onDrawGizmosSelected();if(!this.showGizmos)return;
+      const g=flexalonGizmos();if(!g)return;
+      g.beginLocalPosition(this.node);g.beginColor(this.node,paddingColor);
+      g.drawLineList(this.node,[this.point0,this.point1]);
+      g.drawLineList(this.node,[this.point2,this.point3]);
+      g.beginColor(this.node,pathColor);
+      g.drawLineList(this.node,Array.from({length:65},(_,i)=>
+        FlexalonMath.Bezier(this.point0,this.point1,this.point2,this.point3,i/64)));
+      for(const p of [this.point0,this.point1,this.point2,this.point3])g.drawCircle(this.node,p,5);
+      g.endLocalPosition(this.node);
+    }
     public measureIntrinsic(available:Vec3):Vec3 {
         // Approximate the cubic's bounding rectangle with sampled points,
         // then expand by the largest child margins and measured dimensions.

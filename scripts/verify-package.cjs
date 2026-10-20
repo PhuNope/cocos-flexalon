@@ -16,7 +16,7 @@ function walk(p){return fs.readdirSync(p,{withFileTypes:true}).flatMap(e=>{
 });}
 const all=walk(runtime);
 const scripts=all.filter(p=>p.endsWith('.ts'));
-assert.equal(scripts.length,42);
+assert.equal(scripts.length,43);
 const metas=[path.join(root,'assets/flexalon.meta'),...all.filter(p=>p.endsWith('.meta'))];
 const seen=new Set();
 for(const f of [...all.filter(p=>fs.statSync(p).isDirectory()),...scripts]) {
@@ -43,4 +43,4 @@ const guide=require(path.join(root,'dist/panels/guide/content.js'));
 assert.equal(guide.length,19);
 assert.match(guide[0].steps[0],/extensions\/flexalon-tools/);
 assert.doesNotMatch(guide[0].steps[0],/Copy assets\/flexalon/);
-console.log('PASS: 1 extension; 42 runtime scripts; '+metas.length+' metadata files with unique UUIDs; 18 Inspectors; 19 guide lessons; Cocos >=3.8.2 mount');
+console.log('PASS: 1 extension; 43 runtime scripts; '+metas.length+' metadata files with unique UUIDs; 18 Inspectors; 19 guide lessons; Cocos >=3.8.2 mount');

@@ -1,4 +1,4 @@
-import { _decorator, Vec3, UITransform, Node, Enum, Quat } from 'cc';
+import { _decorator, CCObject, Vec3, UITransform, Node, Enum, Quat } from 'cc';
 import { FlexalonComponent } from './FlexalonComponent';
 import { FlexalonObject } from './FlexalonObject';
 import { FlexalonResult } from './FlexalonResult';
@@ -8,6 +8,7 @@ import { defaultAdapter } from './FlexalonAdapter';
 import { FlexalonMath } from './FlexalonMath';
 import { FlexalonModifier } from './FlexalonModifier';
 import { FlexalonLerpAnimator } from '../Animators/FlexalonLerpAnimator';
+import { flexalonGizmos, rect, quadInParent, boundsColor, paddingColor, marginColor } from './FlexalonGizmos';
 const { ccclass, property, executeInEditMode, requireComponent } = _decorator;
 export type Item = { node: Node; object: FlexalonObject | null; size: Vec3; outer: Vec3; marginLeft: number; marginRight: number; marginTop: number; marginBottom: number; marginBack: number; marginFront: number; };
 
@@ -16,6 +17,44 @@ export type Item = { node: Node; object: FlexalonObject | null; size: Vec3; oute
 @executeInEditMode
 @requireComponent(FlexalonObject)
 export class LayoutBase extends FlexalonComponent implements Layout {
+    @property({tooltip: 'Hiển thị Gizmos khi chọn Node (cần extension Cocos-Gizmos v2).', visible: true})
+    public showGizmos = true;
+    @property({tooltip: 'Vẽ Content Bounds và Margin của từng child.', visible: true})
+    public showChildBounds = true;
+
+    /** Cocos-Gizmos discovers this hook; Flexalon does not register its own renderer. */
+    public onDrawGizmos(): void { /* selected only */ }
+    public onDrawGizmosSelected(): void {
+      if (!this.showGizmos || !this.node) return;
+      const g = flexalonGizmos(), ui = this.node.getComponent(UITransform);
+      if (!g || !ui) return;
+      const x = -ui.anchorX * ui.width, y = -ui.anchorY * ui.height;
+      g.beginLocalPosition(this.node);
+      g.beginColor(this.node, boundsColor);
+      rect(g, this.node, x, y, ui.width, ui.height);
+      g.beginColor(this.node, paddingColor);
+      rect(g, this.node, x + this.paddingLeft, y + this.paddingBottom,
+        Math.max(0, ui.width - this.paddingLeft - this.paddingRight),
+        Math.max(0, ui.height - this.paddingTop - this.paddingBottom));
+      if (this.showChildBounds) for (const child of this.node.children) {
+        // Cocos-Gizmos creates hidden DontSave drawing children; exclude them.
+        if ((child.hideFlags & CCObject.Flags.DontSave) !== 0 ||
+          (!child.active && !this.includeInactive)) continue;
+        const obj = child.getComponent(FlexalonObject);
+        if (obj?.skipLayout) continue;
+        const pts = quadInParent(this.node, child);
+        if (!pts) continue;
+        g.beginColor(this.node, boundsColor);
+        g.drawLineList(this.node, pts, true);
+        if (obj && (obj.marginLeft || obj.marginRight || obj.marginTop || obj.marginBottom)) {
+          const m = quadInParent(this.node, child, {
+            left:obj.marginLeft, right:obj.marginRight, top:obj.marginTop, bottom:obj.marginBottom
+          });
+          if (m) { g.beginColor(this.node, marginColor); g.drawLineList(this.node, m, true); }
+        }
+      }
+      g.endLocalPosition(this.node);
+    }
     @property({tooltip: "Tự tính lại và sắp xếp child khi chạy / ở Edit Mode. Tắt nếu muốn gọi ForceUpdate() thủ công.", visible: true}) public autoUpdate = true;
     @property({tooltip: "Tính cả child inactive khi đo và sắp xếp layout.", visible: true}) public includeInactive = false;
     @property({tooltip: "Khoảng đệm bên trái vùng chứa layout.", visible: true}) public paddingLeft = 0;
@@ -88,7 +127,7 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         return new Vec3(x+(this.paddingLeft-this.paddingRight)*0.5, y+(this.paddingBottom-this.paddingTop)*0.5, (this.paddingBack-this.paddingFront)*0.5);
     }
     protected items(available: Vec3, measuringIntrinsic = false): Item[] {
-        return this.node.children.filter(n=>this.includeInactive || n.active).filter(n=>!n.getComponent(FlexalonObject)?.skipLayout).map(n=>this.measureItem(n,available,measuringIntrinsic));
+        return this.node.children.filter(n=>(n.hideFlags & CCObject.Flags.DontSave)===0).filter(n=>this.includeInactive || n.active).filter(n=>!n.getComponent(FlexalonObject)?.skipLayout).map(n=>this.measureItem(n,available,measuringIntrinsic));
     }
     protected measureItem(node: Node, available: Vec3, measuringIntrinsic = false): Item {
         const obj=node.getComponent(FlexalonObject);

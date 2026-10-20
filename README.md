@@ -60,3 +60,15 @@ Pushing the matching tag (`git tag v0.5.2 && git push origin v0.5.2`) triggers t
 
 
 **Note:** Ordinary branch pushes do not publish ZIPs. Only matching `v*` tags or manual workflow dispatch publish a GitHub Release. Repo source can omit `dist/` (ignored); the workflow builds it from `src/` before packaging.
+
+## Development branch — Cocos-Gizmos Scene visualization
+
+Install [PhuNope/Cocos-Gizmos](https://github.com/PhuNope/Cocos-Gizmos) v2.0.0 separately (Cocos Creator >=3.8.2).
+Flexalon uses only structural TypeScript types and `globalThis.Gizmos2D` at runtime.
+It does NOT import, bundle, register or redeclare Gizmos, so other extensions reuse the same Gizmos runtime.
+Without Cocos-Gizmos enabled, Flexalon keeps working without visuals.
+
+Select a Node and enable **Show Gizmos** (optionally **Show Child Bounds**). Cyan: bounds;
+green: padding; yellow: margin/drop zone; pink: circle/curve/shape guides. Circle
+XZ/ZY and draggable handles are not implemented yet. Temporary Gizmos nodes are
+excluded from layout measurement. **Keep these changes on dev until approved.**
