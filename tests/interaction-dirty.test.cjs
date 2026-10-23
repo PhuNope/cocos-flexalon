@@ -75,9 +75,10 @@ const {FlexalonInteractable}=compile('Interaction/FlexalonInteractable.ts',{
  './FlexalonDragTarget':{FlexalonDragTarget}
 });
 class Layout extends LayoutBase{
- constructor(){super();this.runs=0;}
+ constructor(){super();this._runs=0;}
+ get runs(){return this._runs;}
  getCurrentSize(){return new Vec3(600,400,1);}
- arrangeChildren(){this.runs++;}
+ arrangeChildren(){this._runs++;}
 }
 function addLayout(n){n.addComponent(UITransform);const c=n.addComponent(Layout);c.onEnable();c.lateUpdate();assert.equal(c.runs,1);return c;}
 const touch=(x=0,y=0,id=1,target=null)=>({target,getUILocation:()=>({x,y}),getID:()=>id,propagationStopped:false});
