@@ -13,6 +13,20 @@ export class FlexalonNode {
     get FlexalonObject(): FlexalonObject | null { return this.GameObject.getComponent(FlexalonObject); }
     get Result(): FlexalonResult | null { return this.GameObject.getComponent(FlexalonResult); }
     get Size(): Vec3 { return this.FlexalonObject?.size.clone() ?? defaultAdapter.measure(this.GameObject); }
-    MarkDirty(): void { /* layouts update in edit/play lateUpdate */ }
-    ForceUpdate(): void { /* use Flexalon.ForceUpdate() or LayoutBase.ForceUpdate() */ }
+    MarkDirty(): void {
+        for (let node: Node | null = this.GameObject; node; node = node.parent) {
+            const layout = node.getComponents('Flexalon.LayoutBase')
+                .find(c => c.enabledInHierarchy && typeof (c as any).MarkDirty === 'function') as
+                { MarkDirty(): void } | undefined;
+            if (layout) { layout.MarkDirty(); return; }
+        }
+    }
+    ForceUpdate(): void {
+        for (let node: Node | null = this.GameObject; node; node = node.parent) {
+            const layout = node.getComponents('Flexalon.LayoutBase')
+                .find(c => c.enabledInHierarchy && typeof (c as any).ForceUpdate === 'function') as
+                { ForceUpdate(): void } | undefined;
+            if (layout) { layout.ForceUpdate(); return; }
+        }
+    }
 }

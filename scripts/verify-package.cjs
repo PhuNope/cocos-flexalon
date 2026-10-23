@@ -50,3 +50,4 @@ require('./verify-sliders.cjs');
 require('../tests/grid-gizmos.test.cjs');
 
 require('../tests/fill-parent-fallback.test.cjs');
+require('../tests/layout-dirty-events.test.cjs');

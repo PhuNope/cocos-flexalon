@@ -201,3 +201,12 @@ Curve Animator: Start Progress và Preview Progress dùng CCFloat với `range:[
 - Sau khi cài thành công, yêu cầu Editor đóng. Chỉ khi Editor thực sự thoát, Helper mới xóa `temp/`, `library/`; tiến trình độc lập tiếp tục xóa toàn bộ `.flexalon-updater/` kể cả backup/log.
 - Khi lỗi thay thế, updater rollback và giữ dữ liệu backup/log. Không xóa `assets/`, `settings/`, `local/`, `build/`.
 - Nên lưu Scene và backup project trước khi Update. Lần mở sau có thể import tài nguyên lâu hơn; chưa kiểm chứng trực tiếp tình huống đóng Editor trong Cocos Creator trên Windows.
+
+
+## Dev 0.5.6-dev.1 — Event-driven Dirty Layout (chưa Release)
+
+- LayoutBase lắng nghe Node SIZE_CHANGED, ANCHOR_CHANGED, CHILD_ADDED/REMOVED, CHILDREN_ORDER_CHANGED, thay đổi trạng thái, component và scale/rotation child. Event chỉ MarkDirty, không sắp xếp ngay trong callback.
+- lateUpdate tính lại layout **chỉ khi dirty**, vẫn giữ ForceUpdate() để bắt buộc sắp xếp ngay.
+- Các component Layout / FlexalonObject / GridCell / RandomModifier so sánh signature thuộc tính nhẹ mỗi frame để nhận cả thay đổi Vec3 trong Inspector không phát sinh Node event.
+- Nested Layout truyền Dirty lên Layout cha; lắng nghe được gỡ trong onDisable. Bỏ qua event vị trí child do animator thay đổi để tránh tự relayout liên tục.
+- Không thay đổi main/tag/v0.5.5 Release, chỉ thử nghiệm trên dev.

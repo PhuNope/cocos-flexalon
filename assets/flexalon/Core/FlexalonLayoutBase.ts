@@ -65,9 +65,77 @@ export class LayoutBase extends FlexalonComponent implements Layout {
     @property({tooltip: "Khoảng đệm phía trước theo trục Z.", visible: true}) public paddingFront = 0;
     @property({tooltip: "Khoảng đệm phía sau theo trục Z.", visible: true}) public paddingBack = 0;
     private _running = false;
+    private _observedChildren = new Set<Node>();
     private static originalScales = new WeakMap<Node, Vec3>();
+
+    protected onEnable(): void {
+        super.onEnable();
+        this.node.on(Node.EventType.CHILD_ADDED, this.onChildrenChanged, this);
+        this.node.on(Node.EventType.CHILD_REMOVED, this.onChildrenChanged, this);
+        this.node.on(Node.EventType.CHILDREN_ORDER_CHANGED, this.onChildrenChanged, this);
+        this.node.on(Node.EventType.SIZE_CHANGED, this.onLayoutNodeChanged, this);
+        this.node.on(Node.EventType.ANCHOR_CHANGED, this.onLayoutNodeChanged, this);
+        this.node.on(Node.EventType.COMPONENT_ADDED, this.onLayoutNodeChanged, this);
+        this.node.on(Node.EventType.COMPONENT_REMOVED, this.onLayoutNodeChanged, this);
+        this.syncChildListeners();
+    }
+    protected onDisable(): void {
+        this.node.off(Node.EventType.CHILD_ADDED, this.onChildrenChanged, this);
+        this.node.off(Node.EventType.CHILD_REMOVED, this.onChildrenChanged, this);
+        this.node.off(Node.EventType.CHILDREN_ORDER_CHANGED, this.onChildrenChanged, this);
+        this.node.off(Node.EventType.SIZE_CHANGED, this.onLayoutNodeChanged, this);
+        this.node.off(Node.EventType.ANCHOR_CHANGED, this.onLayoutNodeChanged, this);
+        this.node.off(Node.EventType.COMPONENT_ADDED, this.onLayoutNodeChanged, this);
+        this.node.off(Node.EventType.COMPONENT_REMOVED, this.onLayoutNodeChanged, this);
+        for (const child of this._observedChildren) this.unwatchChild(child);
+        this._observedChildren.clear();
+        super.onDisable();
+    }
+    private onLayoutNodeChanged(): void { if (!this._running) this.MarkDirty(); }
+    private onChildrenChanged(): void {
+        if (this._running) return;
+        this.syncChildListeners();
+        this.MarkDirty();
+    }
+    private syncChildListeners(): void {
+        const children = new Set(this.node.children.filter(c => (c.hideFlags & CCObject.Flags.DontSave) === 0));
+        for (const child of this._observedChildren) if (!children.has(child)) {
+            this.unwatchChild(child);
+            this._observedChildren.delete(child);
+        }
+        for (const child of children) if (!this._observedChildren.has(child)) {
+            this.watchChild(child);
+            this._observedChildren.add(child);
+        }
+    }
+    private watchChild(child: Node): void {
+        child.on(Node.EventType.SIZE_CHANGED, this.onChildChanged, this);
+        child.on(Node.EventType.ANCHOR_CHANGED, this.onChildChanged, this);
+        child.on(Node.EventType.TRANSFORM_CHANGED, this.onChildTransform, this);
+        child.on(Node.EventType.ACTIVE_CHANGED, this.onChildChanged, this);
+        child.on(Node.EventType.ACTIVE_IN_HIERARCHY_CHANGED, this.onChildChanged, this);
+        child.on(Node.EventType.COMPONENT_ADDED, this.onChildChanged, this);
+        child.on(Node.EventType.COMPONENT_REMOVED, this.onChildChanged, this);
+    }
+    private unwatchChild(child: Node): void {
+        child.off(Node.EventType.SIZE_CHANGED, this.onChildChanged, this);
+        child.off(Node.EventType.ANCHOR_CHANGED, this.onChildChanged, this);
+        child.off(Node.EventType.TRANSFORM_CHANGED, this.onChildTransform, this);
+        child.off(Node.EventType.ACTIVE_CHANGED, this.onChildChanged, this);
+        child.off(Node.EventType.ACTIVE_IN_HIERARCHY_CHANGED, this.onChildChanged, this);
+        child.off(Node.EventType.COMPONENT_ADDED, this.onChildChanged, this);
+        child.off(Node.EventType.COMPONENT_REMOVED, this.onChildChanged, this);
+    }
+    private onChildChanged(): void { if (!this._running) this.MarkDirty(); }
+    private onChildTransform(flags: number): void {
+        if (this._running) return;
+        // Position-only events may be emitted continuously by Lerp/Curve
+        // animations; size-affecting transforms still invalidate layout.
+        if ((flags & (Node.TransformBit.SCALE | Node.TransformBit.ROTATION)) !== 0) this.MarkDirty();
+    }
     protected lateUpdate(): void {
-        if(!this.autoUpdate || !this.enabledInHierarchy || this.hasLayoutAncestor()) return;
+        super.lateUpdate();
+        if (!this._dirty || !this.autoUpdate || !this.enabledInHierarchy || this.hasLayoutAncestor()) return;
         this.ForceUpdate();
     }
     public ForceUpdate(): void {
