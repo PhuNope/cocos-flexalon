@@ -66,6 +66,7 @@ function create(node){const c=node.addComponent(TestLayout);c.onEnable();return 
  a.setPosition(15,0,0);layout.lateUpdate();assert.equal(layout.runs,4,'position animation ignored');
  const b=new Node();parent.addChild(b);layout.lateUpdate();assert.equal(layout.runs,5,'child added');
  parent.moveChildFirst(b);layout.lateUpdate();assert.equal(layout.runs,6,'reordered');
+ const hidden=new Node();hidden.hideFlags=1;parent.addChild(hidden);layout.lateUpdate();assert.equal(layout.runs,6,'DontSave Gizmos add ignored');parent.removeChild(hidden);layout.lateUpdate();assert.equal(layout.runs,6,'DontSave Gizmos removal ignored');
  parent.removeChild(a);layout.lateUpdate();assert.equal(layout.runs,7,'child removed');
  a.emit(E.SIZE_CHANGED);layout.lateUpdate();assert.equal(layout.runs,7,'old listener removed');
  b.emit(E.ANCHOR_CHANGED);layout.lateUpdate();assert.equal(layout.runs,8,'anchor changed');

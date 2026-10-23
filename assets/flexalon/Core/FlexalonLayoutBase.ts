@@ -92,7 +92,10 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         super.onDisable();
     }
     private onLayoutNodeChanged(): void { if (!this._running) this.MarkDirty(); }
-    private onChildrenChanged(): void {
+    private onChildrenChanged(child?: Node): void {
+        // Cocos-Gizmos draws temporary DontSave nodes in Scene Editor:
+        // these are not layout children and must not trigger a rebuild.
+        if (child && (child.hideFlags & CCObject.Flags.DontSave) !== 0) return;
         if (this._running) return;
         this.syncChildListeners();
         this.MarkDirty();
