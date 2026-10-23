@@ -17,6 +17,26 @@ async function main(){
  assert(newer('0.5.4','0.5.4-beta.1'));
  assert(!newer('0.5.4-beta.1','0.5.4'));
  assert.equal(ensureAsset(release('0.5.4')).version,'0.5.4');
+ // Scene ready must gate the automatic prompt, without losing an early check.
+ const gateRoot=fs.mkdtempSync(path.join(os.tmpdir(),'flexalon-scene-ready-'));
+ try{
+  let prompts=0;
+  const mockEditor={
+   Project:{path:gateRoot},
+   Dialog:{info:async()=>{prompts++;return {response:1};}},
+   Panel:{open:async()=>{}}
+  };
+  const gate=new UpdateService(root,mockEditor);
+  gate.release={tag:'v0.5.6',version:'0.5.6',releaseUrl:'https://github.com/PhuNope/cocos-flexalon/releases/tag/v0.5.6'};
+  gate.update('available',0,'Test release available');
+  await gate.maybePrompt();
+  assert.equal(prompts,0,'Do not prompt while scene is loading');
+  await gate.markSceneReady();
+  assert.equal(prompts,1,'Prompt once when scene becomes ready');
+  await gate.markSceneReady();
+  assert.equal(prompts,1,'Never prompt again when scene is reopened');
+ }finally{fs.rmSync(gateRoot,{recursive:true,force:true});}
+
  assert.throws(()=>ensureAsset({...release('0.5.4'),draft:true}));
  assert.throws(()=>ensureAsset({...release('0.5.4'),assets:[{name:'malware.zip',size:10,browser_download_url:'https://evil.test/a'}]}));
  assert.equal(unzipCheckOnly(zip,pkg.version),require('../scripts/release-manifest.cjs').getReleaseEntries(root).length);

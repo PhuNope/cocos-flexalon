@@ -84,7 +84,7 @@ class UpdateService{
   this.project=editor.Project&&editor.Project.path||path.dirname(path.dirname(this.root));
   this.workRoot=path.join(this.project,'.flexalon-updater');
   this.state={phase:'idle',percent:0,installed:this.installed,latest:null,message:'Chưa kiểm tra phiên bản',downloaded:0,total:0};
-  this.release=null;this.active=false;this.poll=null;this.prompted=false;
+  this.release=null;this.active=false;this.poll=null;this.prompted=false;this.sceneReady=false;
  }
  snapshot(){return {...this.state,latest:this.release?.version||null,releaseUrl:this.release?.releaseUrl||null};}
  update(phase,percent,message,extra={}){this.state={...this.state,phase,percent,message,...extra};}
@@ -98,11 +98,21 @@ class UpdateService{
   }catch(e){this.update('check_error',0,'Không thể kiểm tra: '+e.message);if(manual)console.warn('[Flexalon Update]',e.message);}
   return this.snapshot();
  }
+ async markSceneReady(){
+  this.sceneReady=true;
+  return this.maybePrompt();
+ }
  async autoCheck(){
   const result=await this.check(false);
-  if(result.phase!=='available'||this.prompted)return result;
+  await this.maybePrompt();
+  return result;
+ }
+ async maybePrompt(){
+  if(!this.sceneReady||this.state.phase!=='available'||this.prompted||!this.release)return this.snapshot();
   const prefs=readJson(path.join(this.workRoot,'preferences.json'))||{};
-  if(prefs.snoozed===this.release.tag)return result;
+  // Test-only prerelease build should still prompt even if the stable release
+  // was previously dismissed in this project.
+  if(!this.installed.includes('-dev.')&&prefs.snoozed===this.release.tag)return this.snapshot();
   this.prompted=true;
   try{
    const answer=await this.editor.Dialog.info('Flexalon '+this.installed+' → '+this.release.version,{
@@ -113,7 +123,7 @@ class UpdateService{
    if(answer&&answer.response===0){this.openUpdateOnNext=true;await this.editor.Panel.open('flexalon-tools.guide');}
    else{fs.mkdirSync(this.workRoot,{recursive:true});fs.writeFileSync(path.join(this.workRoot,'preferences.json'),JSON.stringify({snoozed:this.release.tag}));}
   }catch(e){console.warn('[Flexalon Update] Popup không sẵn sàng',e.message);}
-  return result;
+  return this.snapshot();
  }
  async start(){
   if(this.active)throw Error('Updater đang chạy');

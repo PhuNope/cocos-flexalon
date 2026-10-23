@@ -12,6 +12,7 @@ async function scene(method: string): Promise<any> {
     catch(error) { console.error(`[Flexalon] ${method} failed`,error); return null; }
 }
 export const methods = {
+    onSceneReady() { void updater.markSceneReady(); },
     async openGuide() {
         try { await Editor.Panel.open('flexalon-tools.guide'); }
         catch(error) { console.error('[Flexalon] Cannot open Guide Panel',error); }
@@ -35,5 +36,14 @@ export const methods = {
         return result;
     }
 };
-export function load():void { autoTimer=setTimeout(()=>{void updater.autoCheck();},4000); }
+export function load():void {
+    // Fetch release metadata in the background, but only show the popup when
+    // Cocos has finished initializing the active scene.
+    autoTimer=setTimeout(()=>{void updater.autoCheck();},0);
+    // If the extension is reloaded after scene:ready was broadcast, recover
+    // the already-ready state without waiting for another scene change.
+    void Editor.Message.request('scene','query-is-ready')
+      .then((ready:any)=>{if(ready===true)void updater.markSceneReady();})
+      .catch(()=>{});
+}
 export function unload():void { if(autoTimer)clearTimeout(autoTimer);updater.dispose(); }
