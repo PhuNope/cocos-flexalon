@@ -31,7 +31,28 @@ export class FlexalonInteractable extends FlexalonComponent {
     /** LayoutBase reads this, even if the child does not have FlexalonObject. */
     public get IsDragging():boolean{return this.dragging;}
 
+    /**
+     * The dragged Node can move to Canvas before being dropped. Invalidating
+     * only this.node.parent would miss its original layout. Find the closest
+     * layout at each location, then let LayoutBase.MarkDirty bubble upwards.
+     * No direct ForceUpdate here: multiple input events coalesce in lateUpdate.
+     */
+    private markLayoutDirty(from: Node | null): void {
+        for (let parent = from; parent; parent = parent.parent) {
+            const layout = parent.getComponents(FlexalonComponent).find(component => {
+                const candidate = component as FlexalonComponent & {
+                    arrangeChildren?: unknown; measureIntrinsic?: unknown;
+                };
+                return component.enabledInHierarchy &&
+                    typeof candidate.arrangeChildren === 'function' &&
+                    typeof candidate.measureIntrinsic === 'function';
+            });
+            if (layout) { layout.MarkDirty(); return; }
+        }
+    }
+
     protected onEnable():void {
+        super.onEnable();
         this.node.on(Node.EventType.TOUCH_START,this.startDrag,this);
         this.node.on(Node.EventType.TOUCH_MOVE,this.moveDrag,this);
         this.node.on(Node.EventType.TOUCH_END,this.endDrag,this);
@@ -43,6 +64,7 @@ export class FlexalonInteractable extends FlexalonComponent {
         this.node.off(Node.EventType.TOUCH_END,this.endDrag,this);
         this.node.off(Node.EventType.TOUCH_CANCEL,this.cancelDrag,this);
         this.finishDrag(null,false);
+        super.onDisable();
     }
 
     private pointer(e:EventTouch):Vec3 {
@@ -76,6 +98,9 @@ export class FlexalonInteractable extends FlexalonComponent {
         if(obj)obj.skipLayout=true;
         this.node.getComponent(FlexalonLerpAnimator)?.SuspendForDrag();
         this.node.getComponent(FlexalonCurveAnimator)?.SuspendForDrag();
+        // Explicit invalidation is required even without a FlexalonObject:
+        // IsDragging is runtime state, not a Node transform/size event.
+        this.markLayoutDirty(this.originalParent);
         e.propagationStopped=true;
     }
     private moveDrag(e:EventTouch):void {
@@ -176,6 +201,7 @@ export class FlexalonInteractable extends FlexalonComponent {
     private finishDrag(e:EventTouch|null,allowDrop:boolean):void {
         if(!this.dragging)return;
         const origin=this.originalParent;
+        try {
         const point=e?this.pointer(e):null;
         const target=allowDrop && this.moved && point?this.findDropTarget(point):null;
         const inOrigin=!!(point && origin && origin.getComponent(UITransform) && this.containsPointer(origin,point));
@@ -207,12 +233,23 @@ export class FlexalonInteractable extends FlexalonComponent {
                 this.node.setWorldPosition(this.startWorld);
             }
         }
-        this.dragging=false;
-        const obj=this.node.getComponent(FlexalonObject);
-        if(obj)obj.skipLayout=this.originalSkip;
-        this.node.getComponent(FlexalonLerpAnimator)?.ResumeAfterDrag();
-        this.node.getComponent(FlexalonCurveAnimator)?.ResumeAfterDrag();
-        this.originalParent=null;this.touchId=null;this.detached=false;
-        if(e)e.propagationStopped=true;
+        } finally {
+            // Release / cancel / disable (and even a failing custom DropTarget)
+            // must restore drag ownership and invalidate BOTH layout trees.
+            this.dragging=false;
+            const obj=this.node.getComponent(FlexalonObject);
+            if(obj)obj.skipLayout=this.originalSkip;
+            try {
+                this.node.getComponent(FlexalonLerpAnimator)?.ResumeAfterDrag();
+                this.node.getComponent(FlexalonCurveAnimator)?.ResumeAfterDrag();
+            } finally {
+                this.originalParent=null;
+                this.touchId=null;
+                this.detached=false;
+                this.markLayoutDirty(origin);
+                this.markLayoutDirty(this.node.parent);
+                if(e)e.propagationStopped=true;
+            }
+        }
     }
 }

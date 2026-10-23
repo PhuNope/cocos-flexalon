@@ -51,3 +51,4 @@ require('../tests/grid-gizmos.test.cjs');
 
 require('../tests/fill-parent-fallback.test.cjs');
 require('../tests/layout-dirty-events.test.cjs');
+require('../tests/interaction-dirty.test.cjs');

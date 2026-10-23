@@ -210,3 +210,11 @@ Curve Animator: Start Progress và Preview Progress dùng CCFloat với `range:[
 - Các component Layout / FlexalonObject / GridCell / RandomModifier so sánh signature thuộc tính nhẹ mỗi frame để nhận cả thay đổi Vec3 trong Inspector không phát sinh Node event.
 - Nested Layout truyền Dirty lên Layout cha; lắng nghe được gỡ trong onDisable. Bỏ qua event vị trí child do animator thay đổi để tránh tự relayout liên tục.
 - Không thay đổi main/tag/v0.5.5 Release, chỉ thử nghiệm trên dev.
+
+
+## Dev 0.5.6-dev.1 — Interactable Dirty Drag (chưa Release)
+
+- `FlexalonInteractable` chủ động `MarkDirty()` cho Layout nguồn **ngay khi bắt đầu kéo**, kể cả Node không có `FlexalonObject`.
+- Khi Drop / Cancel / `onDisable()`, luôn khôi phục `IsDragging`, `skipLayout`, resume animators và đánh dấu Dirty cho **cả Layout nguồn và Layout đích** (kể cả drag tạm qua Canvas).
+- Dirty chỉ gây một lần sắp xếp trong `lateUpdate()`; di chuyển pointer/position liên tục không ép relayout mỗi frame.
+- Khi custom `DragTarget.onDrop()` ném lỗi, `finally` vẫn dọn state và đánh dấu Dirty để tránh layout kẹt. Được test bằng mô phỏng event runtime.
