@@ -2,12 +2,13 @@ name: Build and publish Flexalon extension
 
 on:
   push:
+    branches: [main]
     tags:
       - 'v*'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing release tag, e.g. v0.5.5'
+        description: 'Existing release tag, e.g. v0.5.7'
         required: true
         type: string
 
@@ -18,9 +19,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || '' }}
     steps:
-      - name: Checkout tagged code
+      - name: Checkout release source
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
@@ -32,19 +33,62 @@ jobs:
           node-version: '22'
           cache: npm
 
+      - name: Resolve package version on main
+        shell: bash
+        run: |
+          if [ -z "$RELEASE_TAG" ]; then
+            echo "RELEASE_TAG=v$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+          fi
+
+      - name: Skip already published main version
+        id: published
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$GITHUB_REF" = "refs/heads/main" ] && gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Version $RELEASE_TAG already published."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install build dependencies
+        if: steps.published.outputs.skip != 'true'
         run: npm ci --ignore-scripts
 
       - name: Match tag to extension version
+        if: steps.published.outputs.skip != 'true'
         run: node scripts/check-version.cjs "$RELEASE_TAG"
 
       - name: Build, verify, and create ZIP
+        if: steps.published.outputs.skip != 'true'
         run: npm run release
 
       - name: Verify release ZIP integrity
+        if: steps.published.outputs.skip != 'true'
         run: npm run release:check
 
+      - name: Create version tag for main if needed
+        if: github.ref == 'refs/heads/main' && steps.published.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            existing=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')
+            if [ "$existing" != "$GITHUB_SHA" ]; then
+              echo "Tag $RELEASE_TAG points elsewhere; refusing to overwrite."
+              exit 1
+            fi
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f "ref=refs/tags/$RELEASE_TAG" -f "sha=$GITHUB_SHA"
+          fi
+
       - name: Upload release ZIP
+        if: steps.published.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -56,6 +100,6 @@ jobs:
           else
             gh release create "$RELEASE_TAG" "$archive" \
               --verify-tag \
-              --title "Flexalon Cocos ${RELEASE_TAG}" \
+              --title "Flexalon Cocos $RELEASE_TAG" \
               --generate-notes
           fi

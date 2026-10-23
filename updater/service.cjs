@@ -110,9 +110,7 @@ class UpdateService{
  async maybePrompt(){
   if(!this.sceneReady||this.state.phase!=='available'||this.prompted||!this.release)return this.snapshot();
   const prefs=readJson(path.join(this.workRoot,'preferences.json'))||{};
-  // Test-only prerelease build should still prompt even if the stable release
-  // was previously dismissed in this project.
-  if(!this.installed.includes('-dev.')&&prefs.snoozed===this.release.tag)return this.snapshot();
+  if(prefs.snoozed===this.release.tag)return this.snapshot();
   this.prompted=true;
   try{
    const answer=await this.editor.Dialog.info('Flexalon '+this.installed+' → '+this.release.version,{

@@ -1,4 +1,4 @@
-# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.6
+# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.7
 
 Đây là **một extension duy nhất**, bao gồm:
 
@@ -60,7 +60,7 @@ npm run release:check
 Lệnh `npm run release` sẽ tự build mã Editor (TypeScript → `dist`), copy các Custom Inspector và tài nguyên Guide Panel, kiểm tra UUID/.meta, đóng gói ZIP **và kiểm tra toàn vẹn từng file bên trong ZIP**, sau đó tạo:
 
 ```text
-release/flexalon-tools-v0.5.2.zip
+release/flexalon-tools-v0.5.7.zip
 └── flexalon-tools/
     ├── package.json
     ├── assets/flexalon/          # runtime TS + .meta
@@ -76,8 +76,8 @@ File này có thể upload trực tiếp lên GitHub Release, sau đó người 
 **Release tự động trên GitHub:** Tăng `version` trong `package.json` (và `package-lock.json`), commit & push. Sau đó tạo tag trùng với version và push tag:
 
 ```bash
-git tag v0.5.2
-git push origin v0.5.2
+git tag v0.5.7
+git push origin v0.5.7
 ```
 
 GitHub Actions sẽ chạy build + verify + tạo ZIP rồi tạo GitHub Release và đính kèm ZIP. Cũng có thể chạy bằng **Actions → Build and publish Flexalon extension → Run workflow**, nhập tag đã tồn tại. Tag phải đúng `v<version>` của `package.json`; cần cho phép Actions có quyền ghi Releases (`contents: write`). GitHub Release tồn tại thì workflow upload đè ZIP.

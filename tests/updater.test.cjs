@@ -27,7 +27,7 @@ async function main(){
    Panel:{open:async()=>{}}
   };
   const gate=new UpdateService(root,mockEditor);
-  gate.release={tag:'v0.5.6',version:'0.5.6',releaseUrl:'https://github.com/PhuNope/cocos-flexalon/releases/tag/v0.5.6'};
+  gate.release={tag:'v0.5.8',version:'0.5.8',releaseUrl:'https://github.com/PhuNope/cocos-flexalon/releases/tag/v0.5.8'};
   gate.update('available',0,'Test release available');
   await gate.maybePrompt();
   assert.equal(prompts,0,'Do not prompt while scene is loading');
@@ -35,6 +35,23 @@ async function main(){
   assert.equal(prompts,1,'Prompt once when scene becomes ready');
   await gate.markSceneReady();
   assert.equal(prompts,1,'Never prompt again when scene is reopened');
+  // A new session must honor the user's snooze for this release.
+  const snoozed=new UpdateService(root,mockEditor);
+  snoozed.release=gate.release;
+  snoozed.update('available',0,'Test release available');
+  await snoozed.markSceneReady();
+  assert.equal(prompts,1,'Snoozed release should not prompt after restart');
+  // Scene may be ready BEFORE the release query completes.
+  const earlyRoot=fs.mkdtempSync(path.join(os.tmpdir(),'flexalon-ready-first-'));
+  try{
+   const early=new UpdateService(root,{...mockEditor,Project:{path:earlyRoot}});
+   await early.markSceneReady();
+   assert.equal(prompts,1,'Scene ready alone should not prompt');
+   early.release=gate.release;
+   early.update('available',0,'Test release available');
+   await early.maybePrompt();
+   assert.equal(prompts,2,'New release arriving after scene ready should prompt');
+  }finally{fs.rmSync(earlyRoot,{recursive:true,force:true});}
  }finally{fs.rmSync(gateRoot,{recursive:true,force:true});}
 
  assert.throws(()=>ensureAsset({...release('0.5.4'),draft:true}));

@@ -2,6 +2,34 @@
 
 Những thay đổi đáng chú ý của các bản phát hành ổn định.
 
+## v0.5.7 — 2026-10-23
+
+**Phát hành:** 23/10/2026  
+**Hỗ trợ:** Cocos Creator 3.8.2 trở lên  
+**Nâng cấp từ:** v0.5.6 (Auto Updater hoặc cài ZIP thủ công)
+
+### Auto Updater — đợi Scene Editor sẵn sàng
+
+- Bắt đầu kiểm tra bản mới từ GitHub Releases khi extension được load; bỏ timer cố định 4 giây trước khi kiểm tra.
+- Chỉ hiện popup **Có phiên bản Flexalon mới** sau khi nhận được broadcast `scene:ready` từ Cocos Creator. Nếu Scene Editor đã sẵn sàng khi extension load/reload, kiểm tra trạng thái `scene/query-is-ready` để không bỏ lỡ sự kiện.
+- Đồng bộ hai điều kiện *scene ready* và *có bản cập nhật*: GitHub phản hồi trước hay sau scene đều không làm hiện popup quá sớm hoặc bỏ mất popup.
+- Giữ chống hiện popup lặp khi đổi scene trong cùng phiên Editor; tôn trọng lựa chọn **Để sau** với release đã bỏ qua.
+- Bỏ ngoại lệ chỉ dành cho bản fake `0.5.5-dev.100`. Version chính thức là **0.5.7**.
+
+### Không thay đổi
+
+- Tab **Check Update** trong Guide và kiểm tra thủ công vẫn hoạt động bình thường.
+- Helper vẫn tải ZIP release ổn định, xác minh, sao lưu/rollback khi cần, ghi đè extension; yêu cầu Editor đóng, sau đó xoá cache `temp/`, `library/` và toàn bộ `.flexalon-updater/`.
+- Không thay đổi runtime layouts, components hay API public; không cần chỉnh Scene/Prefab.
+
+### Kiểm thử
+
+- Bổ sung regression test cho việc chặn popup trước khi scene ready, hiển thị đúng một lần và việc bỏ qua popup đã snooze.
+- Build TypeScript, kiểm thử updater/helper và toàn vẹn ZIP tự động trên GitHub Actions.
+- Chưa có xác nhận chạy trực tiếp với Cocos Creator GUI trên Windows/macOS; nên lưu Scene và sao lưu project trước khi cập nhật.
+
+---
+
 ## v0.5.6 — 2026-10-23
 
 **Phát hành:** 23/10/2026  
