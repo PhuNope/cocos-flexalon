@@ -1,0 +1,65 @@
+name: Publish approved Flexalon v0.5.6 (one-time)
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.repository == 'PhuNope/cocos-flexalon'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout approved main commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Verify stable version and no existing Release or tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p 'require("./package.json").version')" = "0.5.6"
+          test -f CHANGELOG.md
+          test -f docs/releases/v0.5.6.md
+          if gh release view v0.5.6 >/dev/null 2>&1; then
+            echo "Release v0.5.6 already exists. Refusing overwrite."
+            exit 1
+          fi
+          if gh api "repos/${{ github.repository }}/git/ref/tags/v0.5.6" >/dev/null 2>&1; then
+            echo "Tag v0.5.6 exists. Refusing to move it."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build, tests, ZIP packaging and verification
+        run: npm run release
+
+      - name: Verify ZIP integrity again
+        run: npm run release:check
+
+      - name: Publish v0.5.6 ZIP and explicit changelog
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="release/flexalon-tools-v0.5.6.zip"
+          test -f "$archive"
+          gh release create v0.5.6 "$archive" \
+            --target "$GITHUB_SHA" \
+            --title "Flexalon Cocos v0.5.6" \
+            --notes-file docs/releases/v0.5.6.md

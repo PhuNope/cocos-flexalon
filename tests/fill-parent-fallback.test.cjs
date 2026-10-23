@@ -10,7 +10,7 @@ class Vec3 {
   constructor(x=0,y=0,z=0){this.x=x;this.y=y;this.z=z;}
   set(x,y,z){if(typeof x==='object'){this.x=x.x;this.y=x.y;this.z=x.z;}else{this.x=x;this.y=y;this.z=z;}}
 }
-class FakeComponent { constructor(){this.node=null;this.enabledInHierarchy=true;} ForceUpdate(){} }
+class FakeComponent { constructor(){this.node=null;this.enabledInHierarchy=true;} ForceUpdate(){} onEnable(){} lateUpdate(){} }
 class UITransform {
   constructor(){this.width=100;this.height=100;this.anchorX=.5;this.anchorY=.5;}
   setContentSize(w,h){this.width=w;this.height=h;}

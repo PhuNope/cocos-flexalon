@@ -129,10 +129,12 @@ export class FlexalonObject extends FlexalonComponent {
         }
     }
     protected onEnable(): void {
+        super.onEnable();
         this.SyncFixedUIContentSize();
         this.ApplyFillParentFallback();
     }
     protected lateUpdate(): void {
+        super.lateUpdate();
         this.SyncFixedUIContentSize();
         this.ApplyFillParentFallback();
     }

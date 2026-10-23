@@ -1,4 +1,4 @@
-# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.5
+# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.6
 
 Đây là **một extension duy nhất**, bao gồm:
 
@@ -201,3 +201,22 @@ Curve Animator: Start Progress và Preview Progress dùng CCFloat với `range:[
 - Sau khi cài thành công, yêu cầu Editor đóng. Chỉ khi Editor thực sự thoát, Helper mới xóa `temp/`, `library/`; tiến trình độc lập tiếp tục xóa toàn bộ `.flexalon-updater/` kể cả backup/log.
 - Khi lỗi thay thế, updater rollback và giữ dữ liệu backup/log. Không xóa `assets/`, `settings/`, `local/`, `build/`.
 - Nên lưu Scene và backup project trước khi Update. Lần mở sau có thể import tài nguyên lâu hơn; chưa kiểm chứng trực tiếp tình huống đóng Editor trong Cocos Creator trên Windows.
+
+
+## Release v0.5.6 — Event-driven Dirty Layout
+
+- LayoutBase lắng nghe Node SIZE_CHANGED, ANCHOR_CHANGED, CHILD_ADDED/REMOVED, CHILDREN_ORDER_CHANGED, thay đổi trạng thái, component và scale/rotation child. Event chỉ MarkDirty, không sắp xếp ngay trong callback.
+- lateUpdate tính lại layout **chỉ khi dirty**, vẫn giữ ForceUpdate() để bắt buộc sắp xếp ngay.
+- Các component Layout / FlexalonObject / GridCell / RandomModifier so sánh signature thuộc tính nhẹ mỗi frame để nhận cả thay đổi Vec3 trong Inspector không phát sinh Node event.
+- Nested Layout truyền Dirty lên Layout cha; lắng nghe được gỡ trong onDisable. Bỏ qua event vị trí child do animator thay đổi để tránh tự relayout liên tục.
+- Tính năng được phát hành chính thức trong v0.5.6. Chi tiết xem `CHANGELOG.md`.
+
+
+## Release v0.5.6 — Interactable Dirty Drag
+
+- `FlexalonInteractable` chủ động `MarkDirty()` cho Layout nguồn **ngay khi bắt đầu kéo**, kể cả Node không có `FlexalonObject`.
+- Khi Drop / Cancel / `onDisable()`, luôn khôi phục `IsDragging`, `skipLayout`, resume animators và đánh dấu Dirty cho **cả Layout nguồn và Layout đích** (kể cả drag tạm qua Canvas).
+- Dirty chỉ gây một lần sắp xếp trong `lateUpdate()`; di chuyển pointer/position liên tục không ép relayout mỗi frame.
+- Khi custom `DragTarget.onDrop()` ném lỗi, `finally` vẫn dọn state và đánh dấu Dirty để tránh layout kẹt. Đã test bằng mô phỏng event runtime; chưa có benchmark FPS hoặc kiểm thử trực tiếp trong Editor trên Windows.
+
+Toàn bộ lịch sử thay đổi phát hành chính thức: [`CHANGELOG.md`](CHANGELOG.md). Ghi chú v0.5.6: [`docs/releases/v0.5.6.md`](docs/releases/v0.5.6.md).
