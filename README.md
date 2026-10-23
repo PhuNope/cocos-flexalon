@@ -1,4 +1,4 @@
-# Flexalon Unified Extension v0.5.5 — Cocos Creator >= 3.8.2
+# Flexalon Unified Extension v0.5.6 — Cocos Creator >= 3.8.2
 
 **One extension, everything included.** The package carries all 43 runtime TypeScript files, 18 Custom Inspectors, the Guide Panel, and an offline HTML guide.
 
@@ -81,3 +81,7 @@ Flexalon checks stable GitHub Releases in the Cocos Creator Editor when a projec
 After user confirmation, the updater shows download progress in the Guide, downloads the official ZIP over HTTPS, verifies the archive and installer manifest, and uses an independent helper copied into `<project>/.flexalon-updater/` to back up and replace the extension. The helper requests normal Cocos Editor shutdown. **Only after the Editor process exits** does it remove regenerable project caches `temp/` and `library/`; an external cleanup process then removes the complete `.flexalon-updater/` workspace (including the temporary backup). Failed installations roll back and retain diagnostics.
 
 Save open scenes and back up the project before updating. The first project startup after cleaning caches may take longer. Never delete `assets/`, `settings/`, `local/`, or `build/`. Editor shutdown and file replacement must also be tested on the target Windows Cocos Creator installation.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the stable v0.5.6 improvements (event-driven Dirty Layout and Interactable drag/drop fixes). Release notes: [docs/releases/v0.5.6.md](docs/releases/v0.5.6.md).

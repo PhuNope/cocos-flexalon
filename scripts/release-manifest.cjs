@@ -20,6 +20,7 @@ const INSTALL_FILES = Object.freeze([
     'updater/service.cjs',
     'updater/helper.cjs',
     'README_VI.md',
+    'CHANGELOG.md',
     'static/guide-icon.png',
     'scripts/migrate-legacy.cjs',
     'docs/MIGRATION_VI.md',

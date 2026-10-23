@@ -56,7 +56,7 @@ for (const required of [
     'assets/flexalon/Layouts/FlexalonGridLayout.ts',
     'dist/main.js', 'dist/scene.js', 'dist/panels/guide/client.js',
     'dist/contributions/inspector/FlexalonGridLayout.js',
-    'static/guide-icon.png', 'README_VI.md',
+    'static/guide-icon.png', 'README_VI.md', 'CHANGELOG.md',
     'docs/MIGRATION_VI.md', 'scripts/migrate-legacy.cjs'
 ]) assert.ok(seen.has(`flexalon-tools/${required}`), `Missing release file: ${required}`);
 assert.deepEqual(seen, allowed, 'Release ZIP must contain exactly the installer allowlist');

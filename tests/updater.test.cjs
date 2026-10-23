@@ -19,7 +19,7 @@ async function main(){
  assert.equal(ensureAsset(release('0.5.4')).version,'0.5.4');
  assert.throws(()=>ensureAsset({...release('0.5.4'),draft:true}));
  assert.throws(()=>ensureAsset({...release('0.5.4'),assets:[{name:'malware.zip',size:10,browser_download_url:'https://evil.test/a'}]}));
- assert.equal(unzipCheckOnly(zip,pkg.version),129);
+ assert.equal(unzipCheckOnly(zip,pkg.version),require('../scripts/release-manifest.cjs').getReleaseEntries(root).length);
  assert.throws(()=>unzipCheckOnly(zip,'99.99.99'));
  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'flexalon-dev-updater-'));
  try{
