@@ -2,6 +2,29 @@
 
 Những thay đổi đáng chú ý của các bản phát hành ổn định.
 
+## v0.5.9 — 2026-10-24
+
+**Phát hành:** 24/10/2026  
+**Hỗ trợ:** Cocos Creator 3.8.2 trở lên  
+**Nâng cấp từ:** v0.5.8
+
+### Sửa lỗi Auto Updater trên Windows (EPERM)
+
+- Sửa lỗi `EPERM: operation not permitted, rename '.../extensions/flexalon-tools' -> '.../.flexalon-updater/.../backup-flexalon-tools'` khi Windows đang khóa file extension trong Cocos Creator.
+- Thay đổi trình tự cập nhật: tải ZIP → xác minh nội dung → Helper báo `ready_to_close` → đóng Cocos Creator → Helper chờ tiến trình Editor thoát thật → backup và ghi đè extension → dọn cache `temp/`, `library/`, và thư mục `.flexalon-updater/`.
+- **Không đổi tên hay ghi đè extension khi Editor còn chạy.** Nếu Editor chưa thoát trong thời gian chờ, giữ nguyên bản đang cài và gói ZIP đã tải.
+- Helper thử lại trong thời gian giới hạn khi thao tác đổi tên bị khóa tạm bởi Windows (`EPERM`, `EACCES`, `EBUSY`), vẫn giữ cơ chế rollback khi cập nhật thất bại.
+- Nếu không thể yêu cầu Cocos Creator tự đóng, thông báo người dùng lưu Scene và đóng thủ công để Helper tiếp tục.
+- Bổ sung kiểm thử mô phỏng Editor đang chạy: xác nhận chưa di chuyển extension/backup và chưa xóa cache trước khi Editor thoát; sau khi Editor thoát mới ghi đè.
+
+### Tương thích và hướng dẫn nâng cấp
+
+- Không thay đổi các Flexalon Layout, Animator, Interaction, Inspector, Guide hoặc API runtime.
+- **Lưu ý nếu đang dùng v0.5.8 và từng gặp EPERM:** Updater bản cũ vẫn có thể lỗi lúc đổi tên thư mục. Hãy đóng Cocos Creator và cài ZIP v0.5.9 thủ công một lần; các bản tiếp theo sẽ dùng cơ chế cập nhật mới.
+- Đã kiểm thử tự động trên GitHub Actions, và luồng fake update được kiểm tra thành công trên máy người dùng. Khác biệt giữa các hệ thống Windows có thể vẫn cần xác minh thêm.
+
+---
+
 ## v0.5.8 — 2026-10-24
 
 **Phát hành:** 24/10/2026  
