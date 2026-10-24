@@ -110,23 +110,31 @@ async function main(){
   for(const n of ['temp','library']){fs.mkdirSync(path.join(project,n));fs.writeFileSync(path.join(project,n,'cache'),'stale');}
   const editor=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});
   fs.writeFileSync(task,JSON.stringify({project,extension,work:worker,zip:workerZip,version:pkg.version,status,editorPid:editor.pid}));
-  const messages=[];let completed=false;
+  const marker=path.join(extension,'locked-until-editor-exits.marker');
+  fs.writeFileSync(marker,'old extension must remain untouched');
+  const messages=[];let completed=false,ready=false;
   try{
    await new Promise((resolve,reject)=>{
     const child=spawn(process.execPath,[helperScript,'--task',task],{stdio:['ignore','ignore','ignore','ipc']});
     child.on('message',m=>{
-     messages.push(m.phase);
-     if(m.phase==='waiting_for_editor_exit'){
-      assert(exists(path.join(project,'temp','cache')),'Do not clear while Editor running');
-      editor.kill();
-     }
-     if(m.phase==='complete')completed=true;
+     try{
+      messages.push(m.phase);
+      if(m.phase==='ready_to_close'){
+       ready=true;
+       assert(exists(marker),'Extension must NOT be renamed while Editor is alive');
+       assert(!exists(path.join(worker,'backup-flexalon-tools')),'No backup rename before Editor exit');
+       assert(exists(path.join(project,'temp','cache')),'Do not clear caches while Editor running');
+       editor.kill();
+      }
+      if(m.phase==='complete')completed=true;
+     }catch(e){child.kill();reject(e);}
     });
     child.on('error',reject);
     child.on('exit',code=>code===0?resolve():reject(Error('Helper exit '+code)));
    });
   }finally{editor.kill();}
-  assert(completed&&messages.includes('installed')&&messages.includes('waiting_for_editor_exit'));
+  assert(ready&&completed&&messages.includes('installed')&&messages.includes('ready_to_close'));
+  assert(!exists(marker),'New version should replace the old extension only after Editor exit');
   assert(!exists(path.join(project,'temp'))&&!exists(path.join(project,'library')));
   const workspace=path.join(project,'.flexalon-updater');
   for(let i=0;i<100&&exists(workspace);i++)await new Promise(r=>setTimeout(r,100));

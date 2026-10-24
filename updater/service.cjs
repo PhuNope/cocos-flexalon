@@ -155,27 +155,29 @@ class UpdateService{
    windowsHide:true,env:{...process.env,ELECTRON_RUN_AS_NODE:'1'}
   });
   let requested=false;
-  const installed=()=>{
+  const closeEditor=()=>{
    if(requested)return;requested=true;
-   if(this.poll){clearInterval(this.poll);this.poll=null;}
-   this.active=false;
-   this.update('installed',100,'Đã cài đặt. Editor sẽ đóng; sau đó Helper dọn cache và updater.');
+   this.update('waiting_for_editor_exit',100,'ZIP đã xác minh. Đang đóng Editor để ghi đè an toàn...');
+   // The helper is independent and will not rename the extension until this PID exits.
    setTimeout(()=>{
     try{
      if(this.editor.App?.quit)this.editor.App.quit();
-     else this.update('error',100,'Không thể đóng Editor tự động. Hãy lưu Scene và đóng thủ công để Helper dọn cache.');
-    }catch(e){this.update('error',100,'Không thể yêu cầu đóng Editor: '+e.message);}
-   },100);
+     else this.update('waiting_for_manual_close',100,'Hãy lưu Scene và đóng Cocos Creator thủ công để hoàn tất update.');
+    }catch(e){this.update('waiting_for_manual_close',100,'Không thể tự đóng Editor: '+e.message+'. Hãy đóng thủ công.');
+    }
+   },250);
   };
-  proc.on('message',msg=>{if(msg?.type==='flexalon-updater'&&msg.phase==='installed')installed();});
+  proc.on('message',msg=>{if(msg?.type==='flexalon-updater'&&msg.phase==='ready_to_close')closeEditor();});
   proc.on('error',e=>{this.active=false;this.update('error',0,'Không khởi chạy được helper: '+e.message);});
   proc.unref();proc.channel?.unref?.();
-  this.update('installing',100,'Đã xác minh ZIP, đang ghi đè extension...');
+  this.update('verifying',100,'Đã xác minh ZIP, chuẩn bị đóng Editor để cập nhật...');
   this.poll=setInterval(()=>{
    const s=readJson(status);if(!s)return;
-   if(s.phase==='installed')installed();
-   else if(s.phase==='error'){clearInterval(this.poll);this.poll=null;this.active=false;this.update('error',0,s.message);}
-   else this.update(s.phase,s.percent||0,s.message||'');
+   if(s.phase==='ready_to_close')closeEditor();
+   else if(s.phase==='error'||s.phase==='close_timeout'){
+    clearInterval(this.poll);this.poll=null;this.active=false;this.update(s.phase==='error'?'error':'close_timeout',0,s.message);
+   }
+   else if(!(requested&&(this.state.phase==='waiting_for_manual_close'||this.state.phase==='waiting_for_editor_exit')))this.update(s.phase,s.percent||0,s.message||'');
   },100);
  }
  dispose(){if(this.poll)clearInterval(this.poll);this.poll=null;}

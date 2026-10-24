@@ -79,6 +79,17 @@ function unpackVerified(zip,stage,version){
 }
 function safeError(e){return String(e?.message||e).slice(0,500);}
 function atomicWrite(file,obj){const tmp=file+'.tmp';fs.writeFileSync(tmp,JSON.stringify(obj));fs.renameSync(tmp,file);}
+async function renameWithRetry(src,dest,timeoutMs=15000){
+ const until=Date.now()+timeoutMs;
+ for(;;){
+  try{fs.renameSync(src,dest);return;}
+  catch(e){
+   if(!['EPERM','EACCES','EBUSY'].includes(e?.code)||Date.now()>=until)throw e;
+   // Windows Defender/indexing or an Editor child process may briefly hold a handle.
+   await new Promise(resolve=>setTimeout(resolve,250));
+  }
+ }
+}
 async function replaceTask(task,emit){
  const project=path.resolve(task.project),extension=path.resolve(task.extension),work=path.resolve(task.work);
  assert.equal(extension,path.join(project,'extensions','flexalon-tools'),'Unexpected extension target');
@@ -93,8 +104,8 @@ async function replaceTask(task,emit){
  assert.ok(!fs.existsSync(backup),'Existing backup; refusing overwrite');
  let oldMoved=false,newMoved=false;
  try{
-  fs.renameSync(extension,backup);oldMoved=true;
-  fs.renameSync(installed.root,extension);newMoved=true;
+  await renameWithRetry(extension,backup);oldMoved=true;
+  await renameWithRetry(installed.root,extension);newMoved=true;
   assert.equal(JSON.parse(fs.readFileSync(path.join(extension,'package.json'),'utf8')).version,task.version);
   emit('installed',100,'Cập nhật thành công; đang yêu cầu Cocos Creator đóng');
   return {installed:task.version,backup};
@@ -193,14 +204,20 @@ async function runTask(task){
   }
  };
  try{
-  await replaceTask(task,emit);
-  emit('waiting_for_editor_exit',100,'Đã cài đặt; chờ Editor đóng để xóa temp/ và library/');
-  if(!Number.isSafeInteger(task.editorPid)||task.editorPid<=1){
-   emit('cache_pending',100,'Không xác định được Editor PID; giữ cache để an toàn');return;
-  }
+  // Never rename a live Cocos extension on Windows. First verify and stage the
+  // download outside extensions/, then ask the Editor to exit via IPC.
+  if(!Number.isSafeInteger(task.editorPid)||task.editorPid<=1)
+   throw Error('Không xác định được Editor PID; không thể cập nhật an toàn');
+  emit('verifying',0,'Đang xác minh ZIP trước khi đóng Editor');
+  unzipCheckOnly(task.zip,task.version);
+  emit('ready_to_close',100,'ZIP đã xác minh. Đóng Cocos Creator để ghi đè extension...');
   if(!await waitForEditorExit(task.editorPid)){
-   emit('cache_pending',100,'Editor chưa thoát; không xóa cache');return;
+   emit('close_timeout',100,'Editor chưa đóng; chưa ghi đè extension hoặc xóa cache. ZIP được giữ lại');
+   return;
   }
+  // Editor process and its extension module handles have exited.
+  // Only now perform the atomic backup + install + rollback transaction.
+  await replaceTask(task,emit);
   const results=clearProjectCaches(task.project,emit);
   const issues=results.filter(x=>x.status==='error'||x.status==='skipped');
   if(issues.length){emit('cache_warning',100,'Không xóa được cache: '+issues.map(x=>x.name).join(', '),{cache:results});return;}
