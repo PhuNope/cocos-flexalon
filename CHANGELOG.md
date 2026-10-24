@@ -2,6 +2,31 @@
 
 Những thay đổi đáng chú ý của các bản phát hành ổn định.
 
+## v0.5.8 — 2026-10-24
+
+**Phát hành:** 24/10/2026  
+**Hỗ trợ:** Cocos Creator 3.8.2 trở lên  
+**Nâng cấp từ:** v0.5.7 (Auto Updater hoặc cài ZIP thủ công)
+
+### Sửa cảnh báo Editor: ValueType
+
+- Loại bỏ 19 khai báo `type: Vec3` dư thừa trong decorator `@property` ở 6 component: `FlexalonCurveAnimator` (5), `FlexalonObject` (7), `FlexalonConstraint` (1), `FlexalonCurveLayout` (4), `FlexalonRandomLayout` (1) và `FlexalonRandomModifier` (1).
+- Khắc phục nguồn phát sinh cảnh báo `[Scene] No need to specify the "type" ... because cc.Vec3 is a child class of ValueType` khi Editor đọc các property.
+- Giữ nguyên tên property, kiểu `Vec3`, giá trị mặc định, `tooltip`, `visible`, logic Inspector và UUID metadata; không yêu cầu thay đổi Scene/Prefab.
+- Thêm kiểm thử tự động `tests/value-type-decorators.test.cjs` để ngăn việc khai báo lại `type` dư thừa cho các `ValueType` Cocos thường gặp.
+
+### Không thay đổi
+
+- Không thay đổi thuật toán Layout, Animator, Interaction, Guide và Auto Updater.
+- Bản cập nhật tiếp tục sử dụng updater helper để tải, xác minh ZIP, ghi đè, đóng Editor và dọn `temp/`, `library/`, `.flexalon-updater/`.
+
+### Kiểm thử
+
+- Đã chạy kiểm thử tự động trên nhánh `dev` cho các thay đổi decorator; quy trình phát hành tiếp tục kiểm tra build, test, CRC và toàn vẹn ZIP.
+- Chưa xác nhận bằng thao tác trực tiếp trong Cocos Creator GUI; có thể kiểm tra lại Console trên Windows/macOS sau khi nâng cấp.
+
+---
+
 ## v0.5.7 — 2026-10-23
 
 **Phát hành:** 23/10/2026  
