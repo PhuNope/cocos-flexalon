@@ -9,12 +9,12 @@ const { ccclass, property, menu, executeInEditMode } = _decorator;
 @executeInEditMode
 @menu('Flexalon/Curve Animator')
 export class FlexalonCurveAnimator extends FlexalonComponent {
-    @property({type:Vec3,tooltip:'P0: gốc của đường Bézier trong local space của parent.',visible:true}) public p0=new Vec3(-100,0,0);
-    @property({type:Vec3,tooltip:'Điểm điều khiển Bézier thứ nhất (parent-local).',visible:true}) public p1=new Vec3(-50,100,0);
-    @property({type:Vec3,tooltip:'Điểm điều khiển Bézier thứ hai (parent-local).',visible:true}) public p2=new Vec3(50,-100,0);
-    @property({type:Vec3,tooltip:'P3: điểm cuối đường Bézier (parent-local).',visible:true}) public p3=new Vec3(100,0,0);
+    @property({ tooltip:'P0: gốc của đường Bézier trong local space của parent.',visible:true}) public p0=new Vec3(-100,0,0);
+    @property({ tooltip:'Điểm điều khiển Bézier thứ nhất (parent-local).',visible:true}) public p1=new Vec3(-50,100,0);
+    @property({ tooltip:'Điểm điều khiển Bézier thứ hai (parent-local).',visible:true}) public p2=new Vec3(50,-100,0);
+    @property({ tooltip:'P3: điểm cuối đường Bézier (parent-local).',visible:true}) public p3=new Vec3(100,0,0);
     @property({tooltip:'Bật để đặt vị trí bắt đầu độc lập P0, dịch toàn bộ Bézier sao cho điểm đầu khớp Start Position.',visible:true}) public useStartPosition=false;
-    @property({type:Vec3,tooltip:'Vị trí P0 thực tế trong local của parent.',visible:function(this:FlexalonCurveAnimator){return this.useStartPosition;}}) public startPosition=new Vec3(-100,0,0);
+    @property({ tooltip:'Vị trí P0 thực tế trong local của parent.',visible:function(this:FlexalonCurveAnimator){return this.useStartPosition;}}) public startPosition=new Vec3(-100,0,0);
     @property({type:CCFloat,range:[0,1,0.01],slide:true,tooltip:'Điểm xuất phát trên curve: 0=P0, 1=P3.',visible:true}) public startProgress=0;
     @property({tooltip:'Đặt Node vào Start Progress khi chỉnh Scene mà không chạy animation.',visible:true}) public snapToStartInEditor=false;
     @property({tooltip:'Layout cha không sắp xếp node này. Bật khi Curve Animator điều khiển vị trí.',visible:true}) public ignoreParentLayout=false;

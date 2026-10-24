@@ -9,7 +9,7 @@ const { ccclass, property, menu, executeInEditMode }=_decorator;
 @executeInEditMode
 export class FlexalonRandomModifier extends FlexalonComponent implements FlexalonModifier {
     @property({tooltip: "Seed ngẫu nhiên cố định để Offset mỗi child tái hiện được.", visible: true}) public seed=347;
-    @property({type:Vec3, tooltip: "Độ lệch vị trí tối đa ngẫu nhiên trên từng trục XYZ.", visible: true}) public positionRange=new Vec3(10,10,0);
+    @property({ tooltip: "Độ lệch vị trí tối đa ngẫu nhiên trên từng trục XYZ.", visible: true}) public positionRange=new Vec3(10,10,0);
     public modify(_node:any,index:number,position:Vec3):Vec3 {
         const rnd=FlexalonMath.Seeded((this.seed^Math.imul(index+1,0x45d9f3b))|0);
         return position.clone().add(new Vec3((rnd()*2-1)*this.positionRange.x,(rnd()*2-1)*this.positionRange.y,(rnd()*2-1)*this.positionRange.z));

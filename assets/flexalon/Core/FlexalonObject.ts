@@ -29,20 +29,20 @@ export class FlexalonObject extends FlexalonComponent {
     @property({type: Enum(SizeType), tooltip: "Chọn cách tính chiều rộng: Fixed = Size X; Fill = phần còn lại của layout cha; Component = UITransform; Layout = kích thước nội dung layout trên node này.", visible: true}) public widthType: SizeType = SizeType.Component;
     @property({type: Enum(SizeType), tooltip: "Chọn cách tính chiều cao: Fixed = Size Y; Fill = phần còn lại của layout cha; Component = UITransform; Layout = kích thước nội dung layout trên node này.", visible: true}) public heightType: SizeType = SizeType.Component;
     @property({type: Enum(SizeType), tooltip: "Chọn cách tính chiều sâu Z: Fixed = Size Z; Fill = layout cha; Component = kích thước nguồn; Layout = nội dung layout. UITransform chỉ có X/Y.", visible: true}) public depthType: SizeType = SizeType.Component;
-    @property({type: Vec3, tooltip: "Kích thước X/Y/Z khi trục tương ứng dùng chế độ Fixed. X/Y có thể ghi vào UITransform khi Preserve UI Content Size tắt.", visible: function(this: FlexalonObject): boolean { return this.widthType === SizeType.Fixed || this.heightType === SizeType.Fixed || this.depthType === SizeType.Fixed; }}) public size: Vec3 = new Vec3(100, 100, 1);
-    @property({type: Vec3, tooltip: "Trọng số hoặc tỉ lệ chiếm không gian cho các trục dùng Fill. Chỉ có ý nghĩa khi được layout cha phân bổ.", visible: function(this: FlexalonObject): boolean { return this.widthType === SizeType.Fill || this.heightType === SizeType.Fill || this.depthType === SizeType.Fill; }}) public fill: Vec3 = new Vec3(1, 1, 1);
-    @property({type: Vec3, tooltip: "Giới hạn kích thước tối thiểu X/Y/Z; 0 = không đặt ngưỡng tối thiểu.", visible: true}) public minSize: Vec3 = new Vec3(0, 0, 0);
+    @property({ tooltip: "Kích thước X/Y/Z khi trục tương ứng dùng chế độ Fixed. X/Y có thể ghi vào UITransform khi Preserve UI Content Size tắt.", visible: function(this: FlexalonObject): boolean { return this.widthType === SizeType.Fixed || this.heightType === SizeType.Fixed || this.depthType === SizeType.Fixed; }}) public size: Vec3 = new Vec3(100, 100, 1);
+    @property({ tooltip: "Trọng số hoặc tỉ lệ chiếm không gian cho các trục dùng Fill. Chỉ có ý nghĩa khi được layout cha phân bổ.", visible: function(this: FlexalonObject): boolean { return this.widthType === SizeType.Fill || this.heightType === SizeType.Fill || this.depthType === SizeType.Fill; }}) public fill: Vec3 = new Vec3(1, 1, 1);
+    @property({ tooltip: "Giới hạn kích thước tối thiểu X/Y/Z; 0 = không đặt ngưỡng tối thiểu.", visible: true}) public minSize: Vec3 = new Vec3(0, 0, 0);
     /** Zero max means unbounded. */
-    @property({type: Vec3, tooltip: "Giới hạn kích thước tối đa X/Y/Z; 0 = không giới hạn trên.", visible: true}) public maxSize: Vec3 = new Vec3(0, 0, 0);
+    @property({ tooltip: "Giới hạn kích thước tối đa X/Y/Z; 0 = không giới hạn trên.", visible: true}) public maxSize: Vec3 = new Vec3(0, 0, 0);
     @property({tooltip: "Khoảng trống bên trái phần tử trong layout, đơn vị local.", visible: true}) public marginLeft = 0;
     @property({tooltip: "Khoảng trống bên phải phần tử trong layout, đơn vị local.", visible: true}) public marginRight = 0;
     @property({tooltip: "Khoảng trống phía trên phần tử trong layout, đơn vị local.", visible: true}) public marginTop = 0;
     @property({tooltip: "Khoảng trống phía dưới phần tử trong layout, đơn vị local.", visible: true}) public marginBottom = 0;
     @property({tooltip: "Khoảng trống phía trước phần tử theo trục Z.", visible: true}) public marginFront = 0;
     @property({tooltip: "Khoảng trống phía sau phần tử theo trục Z.", visible: true}) public marginBack = 0;
-    @property({type: Vec3, tooltip: "Dịch chuyển vị trí cuối cùng so với vị trí do layout tính (local XYZ).", visible: true}) public offset: Vec3 = new Vec3();
-    @property({type: Vec3, tooltip: "Cộng thêm góc Euler XYZ (độ) vào rotation do layout tính. Không giữ rotation cũ của child.", visible: true}) public rotationOffset: Vec3 = new Vec3();
-    @property({type: Vec3, tooltip: "Nhân tỷ lệ scale XYZ của node sau khi layout sắp xếp.", visible: true}) public scaleMultiplier: Vec3 = new Vec3(1,1,1);
+    @property({ tooltip: "Dịch chuyển vị trí cuối cùng so với vị trí do layout tính (local XYZ).", visible: true}) public offset: Vec3 = new Vec3();
+    @property({ tooltip: "Cộng thêm góc Euler XYZ (độ) vào rotation do layout tính. Không giữ rotation cũ của child.", visible: true}) public rotationOffset: Vec3 = new Vec3();
+    @property({ tooltip: "Nhân tỷ lệ scale XYZ của node sau khi layout sắp xếp.", visible: true}) public scaleMultiplier: Vec3 = new Vec3(1,1,1);
     @property({tooltip: "Bỏ qua node này khi layout cha đo kích thước và sắp xếp các child.", visible: true}) public skipLayout = false;
     @property({tooltip: 'Khi Width/Height = Fill và parent là UITransform (Canvas hoặc Node UI) không có Flexalon Layout, tự giãn theo parent. Mặc định BẬT cho component mới; Scene cũ đã lưu giá trị false cần bật thủ công.', visible: true, displayName: 'Fill Parent Fallback'})
     public fillParentFallback = true;

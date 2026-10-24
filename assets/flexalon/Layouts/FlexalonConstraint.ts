@@ -8,7 +8,7 @@ const {ccclass,property,menu,executeInEditMode}=_decorator;
 @executeInEditMode
 export class FlexalonConstraint extends FlexalonComponent {
     @property({type:Node, tooltip: "Node mục tiêu mà Constraint sẽ bám theo; bỏ trống thì không theo ai.", visible: true}) public target:Node|null=null;
-    @property({type:Vec3, tooltip: "Vector cộng thêm vào vị trí thế giới của node mục tiêu.", visible: true}) public worldOffset=new Vec3();
+    @property({ tooltip: "Vector cộng thêm vào vị trí thế giới của node mục tiêu.", visible: true}) public worldOffset=new Vec3();
     @property({tooltip: "Nếu bật thì đồng bộ rotation thế giới với node mục tiêu.", visible: true}) public followRotation=false;
     protected lateUpdate():void{this.ForceUpdate();}
     public ForceUpdate():void{

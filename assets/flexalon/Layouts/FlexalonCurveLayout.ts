@@ -10,10 +10,10 @@ const {ccclass,property,menu,executeInEditMode,requireComponent}=_decorator;
 @executeInEditMode
 @requireComponent(FlexalonObject)
 export class FlexalonCurveLayout extends LayoutBase {
-    @property({type:Vec3, tooltip: "Điểm đầu P0 của đường cong Bézier bậc ba (local).", visible: true}) public point0=new Vec3(-150,0,0);
-    @property({type:Vec3, tooltip: "Điểm điều khiển P1 của đường cong Bézier bậc ba.", visible: true}) public point1=new Vec3(-50,150,0);
-    @property({type:Vec3, tooltip: "Điểm điều khiển P2 của đường cong Bézier bậc ba.", visible: true}) public point2=new Vec3(50,-150,0);
-    @property({type:Vec3, tooltip: "Điểm cuối P3 của đường cong Bézier bậc ba.", visible: true}) public point3=new Vec3(150,0,0);
+    @property({ tooltip: "Điểm đầu P0 của đường cong Bézier bậc ba (local).", visible: true}) public point0=new Vec3(-150,0,0);
+    @property({ tooltip: "Điểm điều khiển P1 của đường cong Bézier bậc ba.", visible: true}) public point1=new Vec3(-50,150,0);
+    @property({ tooltip: "Điểm điều khiển P2 của đường cong Bézier bậc ba.", visible: true}) public point2=new Vec3(50,-150,0);
+    @property({ tooltip: "Điểm cuối P3 của đường cong Bézier bậc ba.", visible: true}) public point3=new Vec3(150,0,0);
     @property({tooltip: "Xoay child theo tiếp tuyến đường cong trên mặt phẳng XY.", visible: true}) public orientAlongCurve=false;
     @property({tooltip: "Phân bố child đều theo độ dài cung (xấp xỉ); tắt để phân bố đều theo tham số t.", visible: true}) public uniformDistance=true;
     public override onDrawGizmosSelected():void {
