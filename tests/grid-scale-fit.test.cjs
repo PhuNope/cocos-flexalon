@@ -73,7 +73,7 @@ function scenario({w=200,h=100,cellW=100,cellH=100,gridFit=true,mode=FitMode.Inh
  const grid=new FlexalonGridLayout();
  grid.columns=1;grid.rows=1;grid.columnGap=0;grid.rowGap=0;grid.cellSizing=cellSizing;
  grid.fitChildrenToCell=gridFit;grid.cellPadding=padding;
- const node={ui:new UITransform(w,h),scale:new Vec3(1,1,1),getComponent(){return null;}};
+ const node={ui:new UITransform(w,h),scale:new Vec3(1,1,1),getComponent(C){return C===UITransform?this.ui:null;}};
  const object={fitMode:mode,widthType:fill?SizeType.Fill:SizeType.Component,heightType:fill?SizeType.Fill:SizeType.Component,
      minSize:min,maxSize:max,scaleMultiplier:new Vec3(1,1,1),fraction:()=>1,
      GetFitSourceSize:(axis)=>axis===0?sourceW:axis===1?sourceH:0};
