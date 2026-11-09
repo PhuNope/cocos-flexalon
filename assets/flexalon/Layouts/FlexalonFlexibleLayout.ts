@@ -236,6 +236,14 @@ export class FlexalonFlexibleLayout extends LayoutBase {
             this.arrangeWithFit(items,size);
             return;
         }
+        // Legacy path: do not change sizing semantics when no item opts into Fit.
+        for(const item of items){
+            if(item.object?.typeForAxis(main)===SizeType.Fill){
+                const next=item.size.clone();
+                setAxis(next,main,item.object.clampSize(main,0));
+                this.setItemSize(item,next);
+            }
+        }
         if(!items.length)return;
         const lines = this.formLines(items, main, axisValue(content, main), this.wrap && cross !== main);
         const lineCross=lines.map(g=>g.reduce((v,i)=>Math.max(v,axisValue(i.outer,cross)),0));
@@ -246,10 +254,10 @@ export class FlexalonFlexibleLayout extends LayoutBase {
         lines.forEach((group,row)=>{
             const available=axisValue(content,main);
             const fixedGap=this.gap*Math.max(0,group.length-1);
-            const fixed=group.reduce((s,i)=>s+(!fitted.has(i)&&i.object?.typeForAxis(main)===SizeType.Fill?0:axisValue(i.outer,main)),0);
-            const totalWeight=group.reduce((s,i)=>s+(!fitted.has(i)&&i.object?.typeForAxis(main)===SizeType.Fill ? i.object.fraction(main):0),0);
+            const fixed=group.reduce((s,i)=>s+(i.object?.typeForAxis(main)===SizeType.Fill?0:axisValue(i.outer,main)),0);
+            const totalWeight=group.reduce((s,i)=>s+(i.object?.typeForAxis(main)===SizeType.Fill ? i.object.fraction(main):0),0);
             const spaceForFill=Math.max(0,available-fixed-fixedGap);
-            if(totalWeight>0) for(const i of group){if(!fitted.has(i)&&i.object?.typeForAxis(main)===SizeType.Fill){const newSize=i.size.clone();setAxis(newSize,main,Math.max(0,spaceForFill*i.object.fraction(main)/totalWeight - (axisValue(i.outer,main)-axisValue(i.size,main))));this.setItemSize(i,newSize);}}
+            if(totalWeight>0) for(const i of group){if(i.object?.typeForAxis(main)===SizeType.Fill){const newSize=i.size.clone();setAxis(newSize,main,Math.max(0,spaceForFill*i.object.fraction(main)/totalWeight - (axisValue(i.outer,main)-axisValue(i.size,main))));this.setItemSize(i,newSize);}}
             const occupied=group.reduce((s,i)=>s+axisValue(i.outer,main),0);
             const remainder=Math.max(0,available-occupied);
             let gap=this.gap, leading=0;
@@ -264,7 +272,7 @@ export class FlexalonFlexibleLayout extends LayoutBase {
                 setAxis(pos,main,mainSign*(cursor+mainOuter/2));
                 setAxis(pos,cross,crossSign*(crossCursor + (lineCross[row]-crossOuter)*align01(this.crossAlign)+crossOuter/2));
                 setAxis(pos,depth,this.aligned(axisValue(content,depth),axisValue(i.outer,depth),Align.Center));
-                this.place(i,pos,size,itemIndex++,null,fitted.get(i));
+                this.place(i,pos,size,itemIndex++);
                 cursor+=mainOuter+gap;
             });
             crossCursor+=lineCross[row]+this.wrapGap;

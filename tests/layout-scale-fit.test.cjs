@@ -226,5 +226,26 @@ function createFlex({
  f.update();approx(f.C.scale.x,.8); // visual width 400 > available 280
  f.update();approx(f.C.scale.x,.8);
 }
+{
+ // No-fit legacy Flexible Layout must preserve size, Fill behavior and avoid stale references.
+ const f=createFlex({widthType:SizeType.Fixed});
+ f.C.layoutObject.fitMode=FitMode.None;
+ f.C.layoutObject.widthType=SizeType.Component;
+ f.C.layoutObject.heightType=SizeType.Component;
+ f.update();
+ approx(f.C.scale.x,1);
+ approx(f.C.ui.width,500);
+ approx(f.parent.ui.height,100);
+}
+{
+ const f=createFlex({widthType:SizeType.Fixed});
+ f.C.layoutObject.fitMode=FitMode.None;
+ f.C.layoutObject.widthType=SizeType.Fill;
+ f.C.layoutObject.heightType=SizeType.Component;
+ f.update();
+ approx(f.C.scale.x,1);
+ approx(f.C.ui.width,280);
+ f.update();approx(f.C.ui.width,280);
+}
 
 console.log('PASS: Shared Scale To Fit across 7 layouts, Flexible Layout intrinsic size and remaining-space allocation, visual Min/Max, Fit Mode override and no feedback');
