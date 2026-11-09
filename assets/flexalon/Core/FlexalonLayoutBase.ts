@@ -413,6 +413,10 @@ export class LayoutBase extends FlexalonComponent implements Layout {
             !(n.getComponent(FlexalonCurveAnimator)?.enabledInHierarchy && n.getComponent(FlexalonCurveAnimator)?.ignoreParentLayout)).map(n=>this.measureItem(n,available,measuringIntrinsic));
     }
     protected measureItem(node: Node, available: Vec3, measuringIntrinsic = false): Item {
+        // Restore the previous owner's state BEFORE the new layout measures
+        // children; otherwise the first Grid pass may size its tracks from
+        // the old Flexible layout's stretched UITransform.
+        this.baseScale(node);
         const obj=node.getComponent(FlexalonObject);
         const natural=defaultAdapter.measure(node);
         const activeNested=node.getComponents(LayoutBase).filter(l=>l.enabledInHierarchy);

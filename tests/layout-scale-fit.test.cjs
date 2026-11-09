@@ -350,6 +350,20 @@ function switchScene(){
  approx(item.ui.width,40);
 }
 {
+ // Flexible Fill wrote 117.5 x 108; switching to Grid Component must restore
+ // 40 x 36 BEFORE Grid measures its item, not merely after placing it.
+ const {parent,item,flexible,grid}=switchScene();
+ flexible.fitChildren=false;
+ flexible.ForceUpdate();
+ approx(item.ui.width,117.5);approx(item.ui.height,108);
+ item.layoutObject.widthType=SizeType.Component;
+ item.layoutObject.heightType=SizeType.Component;
+ parent.layouts.push(grid);grid.onEnable();grid.ForceUpdate();
+ approx(item.ui.width,40);approx(item.ui.height,36);approx(item.scale.x,1);
+ grid.enabledInHierarchy=false;grid.onDisable();
+ flexible.enabledInHierarchy=false;flexible.onDisable();
+}
+{
  // User can resize manually when the axis uses Component rather than Fill.
  const {parent,item,flexible,grid}=switchScene();
  flexible.enabledInHierarchy=false;flexible.onDisable();
