@@ -49,6 +49,11 @@ export class FlexalonObject extends FlexalonComponent {
     @property({displayName: 'Fit Source Size', tooltip: 'Kích thước gốc khi Scale To Fit (X/Y). 0 = tự đo Content Size; có thể nhập thủ công nếu Fill trước đó đã thay đổi kích thước gốc.', visible: true})
     public fitSourceSize: Vec3 = new Vec3();
     private capturedContentSize: Vec3 | null = null;
+    /** Called only when UITransform is edited outside a layout update. */
+    public CaptureFitSourceSize(): void {
+        const ui=this.node?.getComponent(UITransform);
+        if (ui) this.capturedContentSize=new Vec3(ui.width,ui.height,1);
+    }
     public GetFitSourceSize(axis: number): number {
         const custom = axisValue(this.fitSourceSize, axis);
         if (Number.isFinite(custom) && custom > 0) return custom;
@@ -59,14 +64,18 @@ export class FlexalonObject extends FlexalonComponent {
     public IsScaleToFitEnabled(): boolean {
         const parent=this.node?.parent;
         if(!parent||this.fitMode===FitMode.None)return false;
-        return parent.getComponents(FlexalonComponent).some(component=>{
+        // Multiple layout components can coexist while the user switches types.
+        // Use only the last enabled layout (the same owner as LayoutBase).
+        const layouts=parent.getComponents(FlexalonComponent).filter(component=>{
             const layout=component as FlexalonComponent & {
-                fitChildren?:boolean;arrangeChildren?:unknown;measureIntrinsic?:unknown;
+                arrangeChildren?:unknown;measureIntrinsic?:unknown;
             };
             return layout.enabledInHierarchy && typeof layout.arrangeChildren==='function' &&
-                typeof layout.measureIntrinsic==='function' &&
-                (this.fitMode===FitMode.ScaleToFit || (this.fitMode===FitMode.Inherit && layout.fitChildren===true));
+                typeof layout.measureIntrinsic==='function';
         });
+        const active=layouts[layouts.length-1] as (FlexalonComponent & {fitChildren?:boolean})|undefined;
+        return !!active && (this.fitMode===FitMode.ScaleToFit ||
+            (this.fitMode===FitMode.Inherit && active.fitChildren===true));
     }
     /** Retained alias for scripts using the Grid-only implementation. */
     public IsGridScaleToFit(): boolean { return this.IsScaleToFitEnabled(); }
@@ -159,10 +168,7 @@ export class FlexalonObject extends FlexalonComponent {
     }
     protected onEnable(): void {
         super.onEnable();
-        if (!this.capturedContentSize) {
-            const ui = this.node?.getComponent(UITransform);
-            if (ui) this.capturedContentSize = new Vec3(ui.width, ui.height, 1);
-        }
+        if (!this.capturedContentSize) this.CaptureFitSourceSize();
         this.SyncFixedUIContentSize();
         this.ApplyFillParentFallback();
     }

@@ -14,6 +14,13 @@ import { syncGizmosSelection, flexalonGizmos, rect, drawLocalLineList, quadInPar
 const { ccclass, property, executeInEditMode, requireComponent } = _decorator;
 export type Item = { node: Node; object: FlexalonObject | null; size: Vec3; outer: Vec3; marginLeft: number; marginRight: number; marginTop: number; marginBottom: number; marginBack: number; marginFront: number; };
 export type FitResult = { scale: number; visualSize: Vec3 };
+type ManagedChildState = {
+    owner: LayoutBase;
+    baseline: Vec3;
+    originalContent: Vec3 | null;
+    lastAppliedScale: Vec3 | null;
+    lastAppliedContent: Vec3 | null;
+};
 /** Min/Max constrain the VISUAL size after original node scale and multiplier.
  * Min wins conflicts: a child can intentionally overflow a too-small slot.
  */
@@ -88,15 +95,108 @@ export class LayoutBase extends FlexalonComponent implements Layout {
     @property({tooltip: "Khoảng đệm phía sau theo trục Z.", visible: true}) public paddingBack = 0;
     private _running = false;
     private _observedChildren = new Set<Node>();
-    private static originalScales = new WeakMap<Node, Vec3>();
-    /** Stable scale captured before any Layout/Fit operation; never use last fitted scale as input. */
-    protected baseScale(node: Node): Vec3 {
-        let initial = LayoutBase.originalScales.get(node);
-        if (!initial) {
-            initial = node.scale.clone();
-            LayoutBase.originalScales.set(node, initial);
+    private _ownedChildren = new Set<Node>();
+    /** A child belongs to its CURRENT layout, not to a global immortal scale cache. */
+    private static childStates = new WeakMap<Node, ManagedChildState>();
+
+    private static sizeMatches(ui: UITransform, size: Vec3 | null): boolean {
+        return !!size && Math.abs(ui.width - size.x) < 0.0001 &&
+            Math.abs(ui.height - size.y) < 0.0001;
+    }
+
+    private static releaseChild(node: Node, state: ManagedChildState): void {
+        if (LayoutBase.childStates.get(node) !== state) return;
+        // Do not overwrite a user edit that happened after the last layout write.
+        if (state.lastAppliedScale &&
+            FlexalonMath.VecApproximately(node.scale, state.lastAppliedScale) &&
+            !FlexalonMath.VecApproximately(node.scale, state.baseline)) {
+            node.setScale(state.baseline);
         }
-        return initial;
+        const ui = node.getComponent(UITransform);
+        if (ui && state.originalContent &&
+            LayoutBase.sizeMatches(ui, state.lastAppliedContent) &&
+            !LayoutBase.sizeMatches(ui, state.originalContent)) {
+            ui.setContentSize(state.originalContent.x, state.originalContent.y);
+        }
+        state.owner._ownedChildren.delete(node);
+        LayoutBase.childStates.delete(node);
+    }
+
+    private releaseOwnedChildren(): void {
+        for (const child of [...this._ownedChildren]) {
+            const state = LayoutBase.childStates.get(child);
+            if (state && state.owner === this) LayoutBase.releaseChild(child, state);
+            else this._ownedChildren.delete(child);
+        }
+    }
+
+    /** External Inspector edits become the new baseline; layout writes are ignored. */
+    private captureEditedChildren(): void {
+        for (const child of this._ownedChildren) {
+            const state = LayoutBase.childStates.get(child);
+            if (!state || state.owner !== this) continue;
+            if (state.lastAppliedScale &&
+                !FlexalonMath.VecApproximately(child.scale, state.lastAppliedScale)) {
+                state.baseline = child.scale.clone();
+                state.lastAppliedScale = null;
+            }
+            const ui = child.getComponent(UITransform);
+            if (ui && state.lastAppliedContent &&
+                !LayoutBase.sizeMatches(ui, state.lastAppliedContent)) {
+                state.originalContent = new Vec3(ui.width, ui.height, 1);
+                state.lastAppliedContent = null;
+                child.getComponent(FlexalonObject)?.CaptureFitSourceSize?.();
+            }
+        }
+    }
+
+    /** Stable base scale for the active owner; never reuse the old Fit factor. */
+    protected baseScale(node: Node): Vec3 {
+        let state = LayoutBase.childStates.get(node);
+        if (state && state.owner !== this) {
+            LayoutBase.releaseChild(node, state);
+            state = undefined;
+        }
+        if (!state) {
+            const ui = node.getComponent(UITransform);
+            state = {
+                owner: this,
+                baseline: node.scale.clone(),
+                originalContent: ui ? new Vec3(ui.width, ui.height, 1) : null,
+                lastAppliedScale: null,
+                lastAppliedContent: null,
+            };
+            LayoutBase.childStates.set(node, state);
+            this._ownedChildren.add(node);
+        } else {
+            if (state.lastAppliedScale &&
+                !FlexalonMath.VecApproximately(node.scale, state.lastAppliedScale)) {
+                state.baseline = node.scale.clone();
+                state.lastAppliedScale = null;
+            }
+            const ui = node.getComponent(UITransform);
+            if (ui && state.lastAppliedContent &&
+                !LayoutBase.sizeMatches(ui, state.lastAppliedContent)) {
+                state.originalContent = new Vec3(ui.width, ui.height, 1);
+                state.lastAppliedContent = null;
+                node.getComponent(FlexalonObject)?.CaptureFitSourceSize?.();
+            }
+        }
+        return state.baseline;
+    }
+
+    /** If multiple layouts are enabled on one node, the last component owns it. */
+    private isActiveLayoutOwner(): boolean {
+        const layouts = this.node.getComponents(LayoutBase).filter(l => l.enabledInHierarchy);
+        return layouts.length === 0 || layouts[layouts.length - 1] === this;
+    }
+
+    private recordPlacedChild(node: Node): void {
+        const state = LayoutBase.childStates.get(node);
+        if (!state || state.owner !== this) return;
+        state.lastAppliedScale = node.scale.clone();
+        const ui = node.getComponent(UITransform);
+        state.lastAppliedContent = ui ? new Vec3(ui.width, ui.height, 1) : null;
     }
 
     protected onEnable(): void {
@@ -111,6 +211,7 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         this.syncChildListeners();
     }
     protected onDisable(): void {
+        this.releaseOwnedChildren();
         this.node.off(Node.EventType.CHILD_ADDED, this.onChildrenChanged, this);
         this.node.off(Node.EventType.CHILD_REMOVED, this.onChildrenChanged, this);
         this.node.off(Node.EventType.CHILDREN_ORDER_CHANGED, this.onChildrenChanged, this);
@@ -128,6 +229,10 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         // these are not layout children and must not trigger a rebuild.
         if (child && (child.hideFlags & CCObject.Flags.DontSave) !== 0) return;
         if (this._running) return;
+        if (child && child.parent !== this.node) {
+            const state=LayoutBase.childStates.get(child);
+            if (state && state.owner===this) LayoutBase.releaseChild(child,state);
+        }
         this.syncChildListeners();
         this.MarkDirty();
     }
@@ -160,28 +265,36 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         child.off(Node.EventType.COMPONENT_ADDED, this.onChildChanged, this);
         child.off(Node.EventType.COMPONENT_REMOVED, this.onChildChanged, this);
     }
-    private onChildChanged(): void { if (!this._running) this.MarkDirty(); }
+    private onChildChanged(): void {
+        if (this._running) return;
+        this.captureEditedChildren();
+        this.MarkDirty();
+    }
     private onChildTransform(flags: number): void {
         if (this._running) return;
+        if ((flags & Node.TransformBit.SCALE) !== 0) this.captureEditedChildren();
         // Position-only events may be emitted continuously by Lerp/Curve
         // animations; size-affecting transforms still invalidate layout.
         if ((flags & (Node.TransformBit.SCALE | Node.TransformBit.ROTATION)) !== 0) this.MarkDirty();
     }
     protected lateUpdate(): void {
         super.lateUpdate();
-        if (!this._dirty || !this.autoUpdate || !this.enabledInHierarchy || this.hasLayoutAncestor()) return;
+        if (!this._dirty || !this.autoUpdate || !this.enabledInHierarchy ||
+            !this.isActiveLayoutOwner() || this.hasLayoutAncestor()) return;
         this.ForceUpdate();
     }
     public ForceUpdate(): void {
-        if (this._running || !this.node.activeInHierarchy || !this.enabledInHierarchy) return;
+        if (this._running || !this.node.activeInHierarchy || !this.enabledInHierarchy ||
+            !this.isActiveLayoutOwner()) return;
         this._running = true;
         try { const size = this.getCurrentSize(); this.arrangeChildren(size); this._dirty = false; }
         finally { this._running = false; }
     }
     protected hasLayoutAncestor(): boolean {
         for(let n=this.node.parent;n;n=n.parent){
-            const l=n.getComponent(LayoutBase);
-            if(l && l.enabledInHierarchy && l.autoUpdate) return true;
+            const active=n.getComponents(LayoutBase).filter(l=>l.enabledInHierarchy);
+            const l=active[active.length-1];
+            if(l && l.autoUpdate) return true;
         }
         return false;
     }
@@ -260,8 +373,9 @@ export class LayoutBase extends FlexalonComponent implements Layout {
             if(sx>0)natural.x=sx;
             if(sy>0)natural.y=sy;
         }
-        const nested=item.node.getComponent(LayoutBase);
-        if(nested && nested!==this && nested.enabledInHierarchy && obj &&
+        const activeNested=item.node.getComponents(LayoutBase).filter(l=>l.enabledInHierarchy);
+        const nested=activeNested[activeNested.length-1];
+        if(nested && nested!==this && obj &&
             (obj.widthType===SizeType.Layout||obj.heightType===SizeType.Layout)){
             const intrinsic=nested.measureIntrinsic(inner);
             if(obj.widthType===SizeType.Layout)natural.x=intrinsic.x;
@@ -273,11 +387,13 @@ export class LayoutBase extends FlexalonComponent implements Layout {
     }
     /** Apply a uniform absolute fit factor. Item outer becomes visual bounds for alignment. */
     protected fitItem(item: Item, bounds: Vec3, inner: Vec3, padding=this.fitPadding): FitResult {
+        // Owner hand-off restores previous layout's scale/content before measuring.
+        const base=this.baseScale(item.node);
         const natural=this.fitNaturalSize(item,inner);
         const ui=item.node.getComponent(UITransform);
         if(ui && (Math.abs(ui.width-natural.x)>0.0001||Math.abs(ui.height-natural.y)>0.0001))
             ui.setContentSize(natural.x,natural.y);
-        const base=this.baseScale(item.node),mult=item.object?.scaleMultiplier;
+        const mult=item.object?.scaleMultiplier;
         const effective=new Vec3(base.x*(mult?.x??1),base.y*(mult?.y??1),base.z*(mult?.z??1));
         const pad=Math.max(0,padding);
         const availableWidth=Math.max(0,bounds.x-item.marginLeft-item.marginRight-2*pad);
@@ -299,7 +415,8 @@ export class LayoutBase extends FlexalonComponent implements Layout {
     protected measureItem(node: Node, available: Vec3, measuringIntrinsic = false): Item {
         const obj=node.getComponent(FlexalonObject);
         const natural=defaultAdapter.measure(node);
-        const nested=node.getComponent(LayoutBase);
+        const activeNested=node.getComponents(LayoutBase).filter(l=>l.enabledInHierarchy);
+        const nested=activeNested[activeNested.length-1];
         const needIntrinsic=!!obj && [0,1,2].some(axis=>obj.typeForAxis(axis)===SizeType.Layout);
         const intrinsic=needIntrinsic && nested && nested.enabledInHierarchy ? nested.measureIntrinsic(available) : natural;
         const size=new Vec3();
@@ -326,6 +443,8 @@ export class LayoutBase extends FlexalonComponent implements Layout {
     /** Coordinates reference the CENTER of the item's outer/margin box. */
     protected place(item: Item, outerCenter: Vec3, containerSize: Vec3, index = 0, rotation: Vec3 | null = null,
         fit?: FitResult): void {
+        // Take ownership BEFORE any content-size or scale writes.
+        const baseline=this.baseScale(item.node);
         const parentCenter=this.contentCenter(containerSize);
         let pos=outerCenter.clone();
         pos.x+=(item.marginLeft-item.marginRight)/2 + parentCenter.x;
@@ -358,19 +477,20 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         if(!Quat.equals(item.node.rotation,q)) item.node.setRotation(q);
         // Apply absolute scale from the ORIGINAL baseline. Switching Fit off
         // restores even children with no FlexalonObject.
-        if(item.object || fit || LayoutBase.originalScales.has(item.node)) {
-            const baseline=this.baseScale(item.node);
+        if(item.object || fit || LayoutBase.childStates.has(item.node)) {
             const mult=item.object?.scaleMultiplier;
             const factor=fit?.scale ?? 1;
             const target=new Vec3(baseline.x*(mult?.x ?? 1)*factor,
                 baseline.y*(mult?.y ?? 1)*factor,baseline.z*(mult?.z ?? 1)*factor);
             if(!FlexalonMath.VecApproximately(item.node.scale,target))item.node.setScale(target);
         }
+        this.recordPlacedChild(item.node);
         // No automatic multiplication of scale every frame.
         const result=item.node.getComponent(FlexalonResult);
         if(result){result.LayoutPosition.set(pos);result.LayoutSize.set(fit?.visualSize ?? item.size);result.LayoutRotation = q.clone();result.SiblingIndex=index;}
-        const nested=item.node.getComponent(LayoutBase);
-        if(nested && nested!==this && nested.enabledInHierarchy) nested.arrangeChildren(item.size.clone());
+        const activeNested=item.node.getComponents(LayoutBase).filter(l=>l.enabledInHierarchy);
+        const nested=activeNested[activeNested.length-1];
+        if(nested && nested!==this) nested.arrangeChildren(item.size.clone());
     }
     protected aligned(size: number, outer: number, alignment: Align): number { return (align01(alignment)-0.5)*(size-outer); }
     /** Used by parent nodes with SizeType.Layout; subclasses override to return minimum content dimensions. */
