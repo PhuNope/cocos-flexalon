@@ -22,6 +22,7 @@ class LayoutBase {
  constructor(){this.paddingLeft=0;this.paddingRight=0;this.paddingTop=0;this.paddingBottom=0;
    this._original=new WeakMap();this.placed=[];this.fitChildren=false;this.fitPadding=0;this.fitItemSize=new Vec3();}
  contentSize(v){return v.clone();}
+ shouldFit(item){const mode=item.object?.fitMode??FitMode.Inherit;return mode===FitMode.ScaleToFit||(mode===FitMode.Inherit&&this.fitChildren);}
  items(inner,intrinsic=false){
    return this.testItems.map(source=>{
      const o=source.object;
@@ -97,7 +98,7 @@ function scenario({w=200,h=100,cellW=100,cellH=100,gridFit=true,mode=FitMode.Inh
                    fill=true,min=zero,max=zero,padding=0,cellSizing=GridCellSizing.Uniform,sourceW=0,sourceH=0}={}){
  const grid=new FlexalonGridLayout();
  grid.columns=1;grid.rows=1;grid.columnGap=0;grid.rowGap=0;grid.cellSizing=cellSizing;
- grid.fitChildrenToCell=gridFit;grid.cellPadding=padding;
+ grid.fitChildren=gridFit;grid.cellPadding=padding;
  const node={ui:new UITransform(w,h),scale:new Vec3(1,1,1),getComponent(C){return C===UITransform?this.ui:null;}};
  const object={fitMode:mode,widthType:fill?SizeType.Fill:SizeType.Component,heightType:fill?SizeType.Fill:SizeType.Component,
      minSize:min,maxSize:max,scaleMultiplier:new Vec3(1,1,1),fraction:()=>1,
@@ -146,5 +147,20 @@ function scenario({w=200,h=100,cellW=100,cellH=100,gridFit=true,mode=FitMode.Inh
  const {node,placed}=scenario({gridFit:false,fill:false});
  assert.equal(placed.fit,undefined,'default Grid behavior unchanged');
  approx(node.scale.x,1);
+}
+{
+ // Backward compatibility: old scenes using Fit Children To Cell upgrade into the
+ // shared Fit Children toggle without leaving a second active switch.
+ const grid=new FlexalonGridLayout();
+ grid.fitChildren=false;grid.fitChildrenToCell=true;
+ const original=Object.getPrototypeOf(FlexalonGridLayout.prototype).onEnable;
+ try{
+     Object.getPrototypeOf(FlexalonGridLayout.prototype).onEnable=function(){};
+     grid.onEnable();
+ }finally{Object.getPrototypeOf(FlexalonGridLayout.prototype).onEnable=original;}
+ assert.equal(grid.fitChildren,true);
+ assert.equal(grid.fitChildrenToCell,false);
+ grid.fitChildren=false;
+ assert.equal(grid.fitChildren,false,'User can turn new Fit toggle off');
 }
 console.log('PASS: Grid Scale To Fit up/down, Fill intrinsic size, Min/Max visual limits, non-uniform baseline, padding, overrides, no accumulation');

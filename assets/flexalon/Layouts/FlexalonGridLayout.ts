@@ -1,7 +1,7 @@
 import { FlexalonObject } from '../Core/FlexalonObject';
 import { _decorator, Color, Enum, UITransform, Vec3 } from 'cc';
 import { LayoutBase, Item } from '../Core/FlexalonLayoutBase';
-import { Align, Axis, GridCorner, GridCellType, GridCellSizing, SizeType, FitMode, align01 } from '../Core/FlexalonTypes';
+import { Align, Axis, GridCorner, GridCellType, GridCellSizing, SizeType, align01 } from '../Core/FlexalonTypes';
 import { FlexalonGridCell } from './FlexalonGridCell';
 import { flexalonGizmos, drawLocalLineList, drawLocalLabel, rect } from '../Core/FlexalonGizmos';
 
@@ -67,10 +67,21 @@ export class FlexalonGridLayout extends LayoutBase {
     @property({type: Enum(Align), tooltip: 'Căn ngang child bên trong cell, xét cả margin của FlexalonObject.', visible: true}) public horizontalAlign: Align = Align.Center;
     @property({type: Enum(Align), tooltip: 'Căn dọc child bên trong cell, xét cả margin của FlexalonObject.', visible: true}) public verticalAlign: Align = Align.Center;
 
-    @property({tooltip: 'Scale To Fit toàn bộ item trong Grid, giữ tỷ lệ, không thay đổi UITransform Content Size. Child có Fit Mode riêng được ưu tiên; Min/Max dựa trên kích thước sau scale.', visible: true, displayName: 'Fit Children To Cell'})
+    // Serialized compatibility for dev Scenes made before Fit Children was centralized.
+    // Hidden from Inspector. On enable move old value to the common layout field,
+    // then clear it so disabling Fit Children later works normally.
+    @property({visible:false})
     public fitChildrenToCell = false;
-    @property({tooltip: 'Khoảng cách chừa đều 4 phía bên trong từng ô Grid (cùng đơn vị với Cell Size).', visible: true, displayName: 'Cell Padding'})
+    @property({tooltip: 'Khoảng đệm trong MỖI ô Grid, được cộng với Fit Padding nếu item bật Scale To Fit. Không ảnh hưởng Column Gap / Row Gap.', visible: true, displayName: 'Cell Padding'})
     public cellPadding = 0;
+
+    protected override onEnable(): void {
+        if (this.fitChildrenToCell) {
+            this.fitChildren = true;
+            this.fitChildrenToCell = false;
+        }
+        super.onEnable();
+    }
 
     @property({tooltip: 'Vẽ Gizmos lưới khi chọn Grid Layout (cần Cocos-Gizmos).', visible: true}) public showGrid = true;
     @property({tooltip: 'Vẽ đường bao từng cell theo cấu hình Grid hiện tại, kể cả cell trống.', visible: true}) public showCellBounds = true;
@@ -78,12 +89,6 @@ export class FlexalonGridLayout extends LayoutBase {
     @property({tooltip: 'Hiển thị khoảng Column Gap / Row Gap. Chỉ hiển thị giá trị dương.', visible: true}) public showGridGaps = false;
     @property({tooltip: 'Hiển thị chỉ số cột/hàng trên cell (giới hạn 80 nhãn để tránh nặng Editor).', visible: true}) public showCellIndex = false;
 
-
-    protected override shouldFit(item: Item): boolean {
-        const mode=item.object?.fitMode??FitMode.Inherit;
-        return mode===FitMode.ScaleToFit || (mode===FitMode.Inherit &&
-            (this.fitChildren || this.fitChildrenToCell));
-    }
 
     /** Fit items should not enlarge their own cells. Their margins still occupy space. */
     private trackItems(inner: Vec3): Item[] {

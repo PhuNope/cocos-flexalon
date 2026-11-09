@@ -40,7 +40,17 @@ for(const file of ['dist/main.js','dist/scene.js','dist/panels/guide.js','dist/p
  assert.ok(fs.existsSync(path.join(root,file)),file);
 }
 const guide=require(path.join(root,'dist/panels/guide/content.js'));
-assert.equal(guide.length,19);
+assert.equal(guide.length,20);
+assert.ok(guide.some(x=>x.id==='scale-to-fit'),'Missing dedicated Scale To Fit lesson');
+const fitGuide=guide.find(x=>x.id==='scale-to-fit');
+for (const term of ['Fit Children','Cell Padding','Fit Item Size','Min Size','Max Size','Flexible','Layout','Grid']) {
+ assert.ok(JSON.stringify(fitGuide).includes(term),'Scale To Fit Guide missing: '+term);
+}
+const guideHtml=fs.readFileSync(path.join(root,'docs/Flexalon_Guide_VI.html'),'utf8');
+assert.ok(guideHtml.includes("id:'scale-to-fit'"),'Offline HTML Guide not regenerated');
+assert.ok(guideHtml.includes('ONE FIT CHILDREN TOGGLE'),'Missing Scale To Fit diagram in offline Guide');
+assert.ok(!guideHtml.includes('19 bài · 18 component'),'Old hardcoded lesson count in Guide');
+
 assert.match(guide[0].steps[0],/extensions\/flexalon-tools/);
 assert.doesNotMatch(guide[0].steps[0],/Copy assets\/flexalon/);
 console.log('PASS: 1 extension; 43 runtime scripts; '+metas.length+' metadata files with unique UUIDs; 18 Inspectors; 19 guide lessons; Cocos >=3.8.2 mount');

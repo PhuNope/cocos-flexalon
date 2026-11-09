@@ -37,6 +37,20 @@ function diagram(kind) {
     for(let c=0;c<n;c++) s+=rectangle(81+c*164,30+row*76,138,59,[C.blue,C.teal,C.purple][row],`${row*3+c+1}`);
    }
    s+=text(560,51,'3 / dòng',C.yellow,12);s+=path('M562 70 V199',C.yellow,1.3,'4,4');break;
+ case 'fit':
+   s+=text(28,31,'ONE FIT CHILDREN TOGGLE',C.yellow,12);
+   s+=rectangle(40,49,250,173,'#1b3142','', '#5c8da6',12);
+   s+=rectangle(66,75,95,108,'#183449','',C.blue,7);
+   s+=rectangle(77,99,73,56,C.teal,'Fit 0.5',C.teal,6);
+   s+=rectangle(171,75,95,108,'#183449','',C.blue,7);
+   s+=rectangle(181,94,75,66,C.purple,'Fit 1.67',C.purple,6);
+   s+=text(165,210,'Grid: 2 cells • 100 × 100', '#c4dbec',11,'middle');
+   s+=path('M313 128 H367 M355 118 L367 128 L355 138',C.yellow,2);
+   s+=rectangle(383,77,214,114,'#1d3747','',C.teal,12);
+   s+=text(490,108,'Fit Children = ON',C.teal,13,'middle');
+   s+=text(490,131,'Fit Padding + Cell Padding',C.yellow,10,'middle');
+   s+=text(490,151,'Min / Max = Visual Size', '#d0e8fc',11,'middle');
+   break;
  case 'grid':
    s+=text(30,34,'RECTANGLE • FitChildren',C.yellow,11);
    s+=rectangle(58,57,252,60,C.blue,'180 × 50');
@@ -147,7 +161,7 @@ function mount(root, docs, options={}) {
  if(!root || !Array.isArray(docs)||!docs.length)throw new Error('Flexalon Guide: invalid mount arguments');
  const store={active:options.initialId&&docs.find(x=>x.id===options.initialId)?options.initialId:docs[0].id, search:'',mode:'guide',status:null};
  const groups=[...new Set(docs.map(d=>d.group))];
- root.innerHTML=`<div class="guide-layout"><header class="guide-header"><div class="guide-brand"><div class="guide-logo">◈</div><div><div class="guide-brand-name">FLEXALON <span style="color:#87d8ff">GUIDE</span></div><div class="guide-brand-caption">Cocos Creator • Hướng dẫn thực hành</div></div></div><div class="guide-header-actions"><button class="guide-tab active" type="button" data-tab="guide">Hướng dẫn</button><button class="guide-tab" type="button" data-tab="updates">Check Update</button><span class="guide-version">...</span></div></header><div class="guide-main"><aside class="guide-sidebar"><div class="guide-search-wrap"><span class="guide-search-icon">⌕</span><input class="guide-search" type="search" placeholder="Tìm component..." aria-label="Tìm component" spellcheck="false"></div><nav class="guide-nav" aria-label="Danh sách bài hướng dẫn"></nav><div class="guide-count">19 bài · 18 component<br/>Hình minh họa · Offline</div></aside><main class="guide-content" tabindex="-1"></main></div></div>`;
+ root.innerHTML=`<div class="guide-layout"><header class="guide-header"><div class="guide-brand"><div class="guide-logo">◈</div><div><div class="guide-brand-name">FLEXALON <span style="color:#87d8ff">GUIDE</span></div><div class="guide-brand-caption">Cocos Creator • Hướng dẫn thực hành</div></div></div><div class="guide-header-actions"><button class="guide-tab active" type="button" data-tab="guide">Hướng dẫn</button><button class="guide-tab" type="button" data-tab="updates">Check Update</button><span class="guide-version">...</span></div></header><div class="guide-main"><aside class="guide-sidebar"><div class="guide-search-wrap"><span class="guide-search-icon">⌕</span><input class="guide-search" type="search" placeholder="Tìm component..." aria-label="Tìm component" spellcheck="false"></div><nav class="guide-nav" aria-label="Danh sách bài hướng dẫn"></nav><div class="guide-count">${docs.length} bài · 18 component<br/>Hình minh họa · Offline</div></aside><main class="guide-content" tabindex="-1"></main></div></div>`;
  const nav=root.querySelector('.guide-nav'); const content=root.querySelector('.guide-content');const search=root.querySelector('.guide-search');
  const sidebar=root.querySelector('.guide-sidebar');
  const api=async(cmd)=>{if(typeof Editor==='undefined'||!Editor.Message?.request)throw Error('Không kết nối được Editor');return Editor.Message.request('flexalon-tools',cmd);};

@@ -45,11 +45,11 @@ const configs = {
       { title: 'Grid Setup', icon: '▦', fields: ['cellType','cellSizing','columns','rows'] },
       { title: 'Placement', icon: '⊞', fields: ['startCorner','startAxis','horizontalAlign','verticalAlign'] },
       { title: 'Spacing', icon: '↔', fields: ['columnGap','rowGap'] },
-      { title: 'Grid Cell Fit', icon: '⤢', expanded: true, fields: ['fitChildrenToCell','cellPadding'] },
+      { title: 'Grid Cell', icon: '⊞', expanded: false, fields: ['cellPadding'] },
       { title: 'Grid Gizmos', icon: '▦', expanded: false, fields: ['showGrid','showCellBounds','showOccupiedCells','showGridGaps','showCellIndex'] },
       ...layoutCommon,
     ],
-    note: 'Fit Children hoặc Fit Children To Cell đều kích hoạt Scale To Fit. Cell Padding chỉ áp dụng cho Grid. Fit Item Size giới hạn vùng ô; Min/Max của child tính trên kích thước sau scale. Min Size có thể khiến item tràn ô.'
+    note: 'Chỉ sử dụng Fit Children trong nhóm Scale To Fit chung (không còn công tắc Grid Cell Fit riêng). Grid dùng chính Cell Size/Span làm vùng Fit; Fit Item Size có thể giới hạn thêm. Fit Padding + Cell Padding cùng được trừ mỗi phía; Min/Max Size dựa trên kích thước hiển thị Size × |Scale|. Nếu Min lớn hơn ô, item có thể tràn. Bản dev cũ bật Fit Children To Cell sẽ tự chuyển sang Fit Children khi enable.'
   },
   FlexalonCircleLayout: {
     title: 'Circle Layout', subtitle: 'Circle, ellipse, spiral, concentric rings', kind: 'layout',

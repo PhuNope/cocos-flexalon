@@ -11,11 +11,14 @@ const root=path.resolve(__dirname,'..');
 const grid=fs.readFileSync(path.join(root,'assets/flexalon/Layouts/FlexalonGridLayout.ts'),'utf8');
 const inspector=fs.readFileSync(path.join(root,'src/contributions/inspector/shared.js'),'utf8');
 const core=fs.readFileSync(path.join(root,'assets/flexalon/Core/FlexalonGizmos.ts'),'utf8');
-for(const property of ['showGrid','showCellBounds','showOccupiedCells','showGridGaps','showCellIndex','fitChildrenToCell','cellPadding']){
+for(const property of ['showGrid','showCellBounds','showOccupiedCells','showGridGaps','showCellIndex','cellPadding']){
   assert.match(grid,new RegExp('public '+property+'\\s*='));
   assert.ok(inspector.includes("'"+property+"'"),'Missing Inspector field '+property);
 }
 assert.ok(grid.includes('private cellGeometry('),'Grid and Gizmos must share cell geometry');
+assert.ok(grid.includes('this.fitChildren = true')&&grid.includes('this.fitChildrenToCell = false'),'Legacy Grid Fit flag must migrate once into shared Fit Children');
+assert.ok(!inspector.includes("'fitChildrenToCell'"),'Inspector must not show duplicate Grid fit toggle');
+assert.ok(inspector.includes("'fitChildren'")&&inspector.includes("'fitPadding'")&&inspector.includes("'fitItemSize'"),'Grid must expose shared Fit fields');
 assert.ok(grid.includes('this.cellGeometry(measured, column, row, spanC, spanR)'),'Arrange must use shared cell geometry');
 assert.ok(grid.includes('const cell = this.cellGeometry(g, column, row);'),'Gizmos must use shared cell geometry');
 assert.ok(grid.includes('this.geometry(this.trackItems(inner), inner, false)') && grid.includes('const naturalItems = this.trackItems(inner)'),'Gizmos must measure tracks exactly like arrangeChildren');

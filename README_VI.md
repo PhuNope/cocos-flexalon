@@ -4,7 +4,7 @@
 
 - 43 file TypeScript runtime Flexalon (Core, Grid/Flexible/Circle/Curve/Align/Random/Shape Layout, Object, Animation, Cloner, Interaction...).
 - Custom Inspector của 18 component Flexalon.
-- Guide Panel tiếng Việt với 19 bài hướng dẫn và hình SVG offline.
+- Guide Panel tiếng Việt với 20 bài hướng dẫn và hình SVG offline.
 - Các lệnh Inspect Layouts, Refresh Layouts và Open Guide.
 - `.meta` riêng cho tất cả script/directory để UUID ổn định khi nâng cấp.
 
@@ -21,6 +21,26 @@ Ví dụ import từ mã dự án:
 ```ts
 import { FlexalonGridLayout } from 'db://flexalon-tools/flexalon/Layouts/FlexalonGridLayout';
 ```
+
+## Scale To Fit: một tùy chọn dùng chung (nhánh dev)
+
+Các loại Flexalon Layout sử dụng chung nhóm **Scale To Fit** trong Inspector:
+
+- **Fit Children**: một toggle bật Fit cho tất cả child có Fit Mode = Inherit; mặc định tắt.
+- **Fit Padding**: phần đệm mỗi cạnh của vùng Fit.
+- **Fit Item Size (X/Y)**: giới hạn vùng Fit riêng mỗi item. Để 0 nếu không muốn thêm giới hạn.
+- **FlexalonObject → Fit Mode**: Inherit (theo parent), None (tắt riêng item), ScaleToFit (bật riêng item).
+- **Grid Layout → Grid Cell → Cell Padding**: chỉ là đệm trong ô Grid, **không còn một toggle Fit khác**. Đệm thực tế = Cell Padding + Fit Padding mỗi phía. Column Gap / Row Gap độc lập.
+
+Ví dụ **Grid**: GridRoot rộng 200, hai cột, mỗi ô 100 × 100, Gap = 0. Với Fit Children=true, Card_A gốc 200 × 100 scale thành 100 × 50 (factor=0.5), Card_B gốc 60 × 40 scale thành khoảng 100 × 66.67 (factor≈1.6667). Nếu Cell Padding=5 và Fit Padding=10, vùng Fit giảm còn 70 × 70 (chưa trừ margin). Fit Item Size=80 × 80 tiếp tục giới hạn vùng Fit khi cần.
+
+Ví dụ **Flexible**: parent rộng 600, ba child rộng 100, 200, 500, Gap=10. Nếu chỉ child cuối bật Fit, nó nhận phần còn lại 600 − 100 − 200 − 20 = 280, nên scale = 280/500 = 0.56, hai child đầu giữ nguyên. Nếu parent **Width/Height = Layout**, không có giới hạn Fit thì tự đo width 820 và child cuối giữ scale 1. Với Fit Item Size X=280, parent tự đo width 600 theo *Visual Size* sau Fit, không dùng kích thước của frame trước.
+
+**Min/Max Size khi Fit** ràng buộc kích thước nhìn thấy: Visual Size = Source Size × |Original Scale × Scale Multiplier × Fit Factor|. Ví dụ item 200 × 100, ô 40 × 40, Min 60 × 30 → factor tối thiểu 0.3, object có thể tràn ô thành 60 × 30; Min được ưu tiên khi thiếu không gian. Fill khi Fit dùng source size thay vì kéo méo content size; Scene cũ có thể đặt **Fit Source Size** để phục hồi kích thước gốc.
+
+**Tương thích cấu hình cũ**: Scene/Prefab đã lưu Fit Children To Cell = true ở dev cũ sẽ tự chuyển giá trị sang Fit Children khi Grid được bật, sau đó xoá cờ cũ. Mở Scene/Prefab và lưu lại sau khi nâng cấp. Tham khảo bài **Scale To Fit (chi tiết)** tại Extensions → Flexalon → Open Flexalon Guide (20 bài), có thêm hình minh hoạ, bảng property và bài thực hành.
+
+---
 
 ## Nâng cấp dự án đã dùng v0.4.9 trở xuống
 
@@ -84,7 +104,7 @@ GitHub Actions sẽ chạy build + verify + tạo ZIP rồi tạo GitHub Release
 
 **Đóng gói tối giản (allowlist):** Chỉ đưa vào ZIP file cài đặt `package.json`, mã runtime `assets/**/*.ts` và `.meta` (giữ UUID), mã Editor đã build trong `dist` (những file được khai báo + dependency dùng trực tiếp), icon `static/guide-icon.png`, `README_VI.md` và công cụ nâng cấp `scripts/migrate-legacy.cjs` + `docs/MIGRATION_VI.md`.
 
-**KHÔNG đóng gói:** `src/`, `node_modules/`, `package-lock.json`, `tsconfig.json`, `release/`, `.github/`, `.git/`, test, ảnh preview và bản HTML hướng dẫn offline nằm trong `docs/`. Guide Panel vẫn có đầy đủ 19 bài vì dữ liệu đã nằm trong `dist`.
+**KHÔNG đóng gói:** `src/`, `node_modules/`, `package-lock.json`, `tsconfig.json`, `release/`, `.github/`, `.git/`, test, ảnh preview và bản HTML hướng dẫn offline nằm trong `docs/`. Guide Panel vẫn có đầy đủ 20 bài vì dữ liệu đã nằm trong `dist`.
 
 Xem chính xác các file sẽ nằm trong ZIP trước khi phát hành:
 

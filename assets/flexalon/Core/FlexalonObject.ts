@@ -61,11 +61,11 @@ export class FlexalonObject extends FlexalonComponent {
         if(!parent||this.fitMode===FitMode.None)return false;
         return parent.getComponents(FlexalonComponent).some(component=>{
             const layout=component as FlexalonComponent & {
-                fitChildren?:boolean;fitChildrenToCell?:boolean;arrangeChildren?:unknown;measureIntrinsic?:unknown;
+                fitChildren?:boolean;arrangeChildren?:unknown;measureIntrinsic?:unknown;
             };
             return layout.enabledInHierarchy && typeof layout.arrangeChildren==='function' &&
                 typeof layout.measureIntrinsic==='function' &&
-                (this.fitMode===FitMode.ScaleToFit || layout.fitChildren===true || layout.fitChildrenToCell===true);
+                (this.fitMode===FitMode.ScaleToFit || (this.fitMode===FitMode.Inherit && layout.fitChildren===true));
         });
     }
     /** Retained alias for scripts using the Grid-only implementation. */
