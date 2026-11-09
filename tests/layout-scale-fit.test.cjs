@@ -29,7 +29,7 @@ class Node{
 }
 const FitMode={Inherit:0,None:1,ScaleToFit:2};
 const SizeType={Fixed:0,Fill:1,Component:2,Layout:3};
-const dec={ccclass:()=>C=>C,property:()=>()=>{},executeInEditMode:C=>C,requireComponent:()=>C=>C};
+const dec={ccclass:()=>C=>C,property:()=>()=>{},menu:()=>C=>C,executeInEditMode:C=>C,requireComponent:()=>C=>C};
 const cc={_decorator:dec,CCObject:{Flags:{DontSave:1}},Vec3,UITransform,Quat,Node,Enum:x=>x};
 class FlexalonComponent{constructor(){this.enabledInHierarchy=true;}}
 class FlexalonObject{
