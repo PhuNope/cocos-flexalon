@@ -11,7 +11,7 @@ const root=path.resolve(__dirname,'..');
 const grid=fs.readFileSync(path.join(root,'assets/flexalon/Layouts/FlexalonGridLayout.ts'),'utf8');
 const inspector=fs.readFileSync(path.join(root,'src/contributions/inspector/shared.js'),'utf8');
 const core=fs.readFileSync(path.join(root,'assets/flexalon/Core/FlexalonGizmos.ts'),'utf8');
-for(const property of ['showGrid','showCellBounds','showOccupiedCells','showGridGaps','showCellIndex']){
+for(const property of ['showGrid','showCellBounds','showOccupiedCells','showGridGaps','showCellIndex','fitChildrenToCell','cellPadding']){
   assert.match(grid,new RegExp('public '+property+'\\s*='));
   assert.ok(inspector.includes("'"+property+"'"),'Missing Inspector field '+property);
 }

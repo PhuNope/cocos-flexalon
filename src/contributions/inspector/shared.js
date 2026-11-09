@@ -18,6 +18,7 @@ const configs = {
         {key:'size',when:'anyFixed'}, {key:'fill',when:'anyFill'},
       ]},
       { title: 'Min / Max', icon: '⇳', expanded: false, fields: ['minSize','maxSize'] },
+      { title: 'Grid Scale To Fit', icon: '⤢', expanded: true, fields: ['fitMode','fitSourceSize'] },
       { title: 'Margin', icon: '□', expanded: false, fields: ['marginLeft','marginRight','marginTop','marginBottom','marginFront','marginBack'] },
       { title: 'Transform', icon: '✧', expanded: false, fields: ['offset','rotationOffset','scaleMultiplier'] },
       { title: 'Fill Parent Fallback', icon: '⇱', expanded: true, when: 'anyFill', fields: ['fillParentFallback'] },
@@ -43,10 +44,11 @@ const configs = {
       { title: 'Grid Setup', icon: '▦', fields: ['cellType','cellSizing','columns','rows'] },
       { title: 'Placement', icon: '⊞', fields: ['startCorner','startAxis','horizontalAlign','verticalAlign'] },
       { title: 'Spacing', icon: '↔', fields: ['columnGap','rowGap'] },
+      { title: 'Scale To Fit', icon: '⤢', expanded: true, fields: ['fitChildrenToCell','cellPadding'] },
       { title: 'Grid Gizmos', icon: '▦', expanded: false, fields: ['showGrid','showCellBounds','showOccupiedCells','showGridGaps','showCellIndex'] },
       ...layoutCommon,
     ],
-    note: 'FitChildren tính bề rộng theo cột và chiều cao theo hàng. Hexagonal luôn dùng ô đều (Uniform).'
+    note: 'FitChildren tính bề rộng theo cột và chiều cao theo hàng, trừ khi có item bật Scale To Fit thì Grid dùng ô Uniform để tránh vòng lặp kích thước. Scale To Fit giữ nguyên UITransform; Min/Max của child tính trên kích thước sau scale. Min Size có thể khiến object tràn ô.'
   },
   FlexalonCircleLayout: {
     title: 'Circle Layout', subtitle: 'Circle, ellipse, spiral, concentric rings', kind: 'layout',

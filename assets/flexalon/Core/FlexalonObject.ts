@@ -1,6 +1,6 @@
 import { _decorator, Enum, Vec3, UITransform } from 'cc';
 import { FlexalonComponent } from './FlexalonComponent';
-import { Directions, SizeType, axisValue, finitePositive } from './FlexalonTypes';
+import { Directions, SizeType, FitMode, axisValue, finitePositive } from './FlexalonTypes';
 import { syncGizmosSelection, flexalonGizmos, rect, boundsColor, marginColor } from './FlexalonGizmos';
 const { ccclass, property, executeInEditMode, menu, executionOrder } = _decorator;
 /** Child overrides: explicit sizing, fill ratios, min/max, margins and transform offsets. */
@@ -44,6 +44,29 @@ export class FlexalonObject extends FlexalonComponent {
     @property({ tooltip: "Cộng thêm góc Euler XYZ (độ) vào rotation do layout tính. Không giữ rotation cũ của child.", visible: true}) public rotationOffset: Vec3 = new Vec3();
     @property({ tooltip: "Nhân tỷ lệ scale XYZ của node sau khi layout sắp xếp.", visible: true}) public scaleMultiplier: Vec3 = new Vec3(1,1,1);
     @property({tooltip: "Bỏ qua node này khi layout cha đo kích thước và sắp xếp các child.", visible: true}) public skipLayout = false;
+    @property({type: Enum(FitMode), displayName: 'Grid Fit Mode', tooltip: 'Inherit = theo Grid; None = không fit; ScaleToFit = tự tăng/giảm scale cho vừa ô, giữ tỷ lệ. Min/Max giới hạn kích thước hiển thị sau scale.', visible: true})
+    public fitMode: FitMode = FitMode.Inherit;
+    @property({displayName: 'Fit Source Size', tooltip: 'Kích thước gốc khi Scale To Fit (X/Y). 0 = tự lấy Content Size trước khi Fill thay đổi; nhập thủ công khi Scene cũ đã lưu kích thước bị Fill ghi đè.', visible: true})
+    public fitSourceSize: Vec3 = new Vec3();
+    private capturedContentSize: Vec3 | null = null;
+    public GetFitSourceSize(axis: number): number {
+        const custom = axisValue(this.fitSourceSize, axis);
+        if (Number.isFinite(custom) && custom > 0) return custom;
+        return this.typeForAxis(axis) === SizeType.Fill && this.capturedContentSize
+            ? axisValue(this.capturedContentSize, axis) : 0;
+    }
+    /** Grid-level fit is resolved without importing GridLayout (avoids a circular dependency). */
+    public IsGridScaleToFit(): boolean {
+        const parent = this.node?.parent;
+        if (!parent || this.fitMode === FitMode.None) return false;
+        return parent.getComponents(FlexalonComponent).some(component => {
+            const grid = component as FlexalonComponent & { fitChildrenToCell?: boolean; cellSizing?: unknown; arrangeChildren?: unknown };
+            return grid.enabledInHierarchy && grid.cellSizing !== undefined &&
+                typeof grid.arrangeChildren === 'function' &&
+                (this.fitMode === FitMode.ScaleToFit ||
+                    (this.fitMode === FitMode.Inherit && grid.fitChildrenToCell === true));
+        });
+    }
     @property({tooltip: 'Khi Width/Height = Fill và parent là UITransform (Canvas hoặc Node UI) không có Flexalon Layout, tự giãn theo parent. Mặc định BẬT cho component mới; Scene cũ đã lưu giá trị false cần bật thủ công.', visible: true, displayName: 'Fill Parent Fallback'})
     public fillParentFallback = true;
     @property({tooltip: "BẬT: không thay đổi UITransform.width/height. TẮT (khuyên dùng): Flexalon đồng bộ UITransform theo Fixed/Fill/Layout. Có thể gây chênh lệch giữa kích thước layout và kích thước hiển thị khi bật.", visible: true, displayName: "Preserve UI Content Size"}) public preserveUIContentSize = false;
@@ -62,8 +85,11 @@ export class FlexalonObject extends FlexalonComponent {
         if (this.preserveUIContentSize || !this.node) return;
         const ui = this.node.getComponent(UITransform);
         if (!ui) return;
-        const width = this.widthType === SizeType.Fixed ? this.clampSize(0, this.fixed(0)) : ui.width;
-        const height = this.heightType === SizeType.Fixed ? this.clampSize(1, this.fixed(1)) : ui.height;
+        // Grid Scale To Fit constrains VISUAL dimensions instead of clamping
+        // intrinsic UITransform dimensions before Node.scale is calculated.
+        const fitting = this.IsGridScaleToFit();
+        const width = this.widthType === SizeType.Fixed ? (fitting ? this.fixed(0) : this.clampSize(0, this.fixed(0))) : ui.width;
+        const height = this.heightType === SizeType.Fixed ? (fitting ? this.fixed(1) : this.clampSize(1, this.fixed(1))) : ui.height;
         if (Math.abs(ui.width - width) > 0.0001 || Math.abs(ui.height - height) > 0.0001) {
             ui.setContentSize(width, height);
         }
@@ -130,6 +156,10 @@ export class FlexalonObject extends FlexalonComponent {
     }
     protected onEnable(): void {
         super.onEnable();
+        if (!this.capturedContentSize) {
+            const ui = this.node?.getComponent(UITransform);
+            if (ui) this.capturedContentSize = new Vec3(ui.width, ui.height, 1);
+        }
         this.SyncFixedUIContentSize();
         this.ApplyFillParentFallback();
     }

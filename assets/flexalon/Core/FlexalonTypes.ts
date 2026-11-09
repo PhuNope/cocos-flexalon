@@ -15,9 +15,11 @@ export enum CircleSpacingType { Fixed = 0, Evenly = 1 }
 export enum GridCellType { Rectangle = 0, Hexagonal = 1 }
 /** Uniform keeps evenly sized cells; FitChildren uses per-column/per-row content dimensions (rectangular grids only). */
 export enum GridCellSizing { Uniform = 0, FitChildren = 1 }
+/** Per-child override for a Grid's Scale To Fit setting; Inherit preserves grid defaults. */
+export enum FitMode { Inherit = 0, None = 1, ScaleToFit = 2 }
 export enum GridCorner { BottomLeft = 0, BottomRight = 1, TopRight = 2, TopLeft = 3 }
 export enum ShapeType { Rectangle = 0, Ellipse = 1, Polygon = 2 }
-for (const e of [Direction, Axis, Align, Plane, SizeType, MinMaxSizeType, GapOptions, CircleRadiusType, CircleSpacingType, GridCellType, GridCellSizing, GridCorner, ShapeType]) Enum(e);
+for (const e of [Direction, Axis, Align, Plane, SizeType, MinMaxSizeType, GapOptions, CircleRadiusType, CircleSpacingType, GridCellType, GridCellSizing, FitMode, GridCorner, ShapeType]) Enum(e);
 
 export class Directions {
     constructor(public Right = 0, public Left = 0, public Top = 0, public Bottom = 0, public Back = 0, public Front = 0) {}

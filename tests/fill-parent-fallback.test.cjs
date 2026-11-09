@@ -25,7 +25,7 @@ class FakeNode {
 const SizeType={Fixed:0,Fill:1,Component:2,Layout:3};
 const dec={ccclass:()=>C=>C,property:()=>()=>{},executeInEditMode:C=>C,menu:()=>C=>C,executionOrder:()=>C=>C};
 const cc={_decorator:dec,Enum:v=>v,Vec3,UITransform};
-const typeStub={SizeType,Directions:class {},axisValue:(v,a)=>a===0?v.x:a===1?v.y:v.z,finitePositive:v=>Number.isFinite(v)?Math.max(0,v):0};
+const typeStub={SizeType,FitMode:{Inherit:0,None:1,ScaleToFit:2},Directions:class {},axisValue:(v,a)=>a===0?v.x:a===1?v.y:v.z,finitePositive:v=>Number.isFinite(v)?Math.max(0,v):0};
 const gizmoStub={syncGizmosSelection(){},flexalonGizmos(){return undefined;},rect(){},boundsColor:{},marginColor:{}};
 const srcFile=path.resolve(__dirname,'../assets/flexalon/Core/FlexalonObject.ts');
 const output=ts.transpileModule(fs.readFileSync(srcFile,'utf8'),{fileName:srcFile,compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,experimentalDecorators:true}}).outputText;
@@ -67,6 +67,15 @@ const approx=(a,b)=>assert.ok(Math.abs(a-b)<.00001,`${a} != ${b}`);
   approx(child.position.x,0);approx(child.position.y,0);approx(child.position.z,4);
   parentUI.setContentSize(640,360);obj.lateUpdate();
   approx(ui.width,640);approx(ui.height,360);
+}
+// Capture intrinsic content before an older Fill pass overwrites UITransform.
+{
+  const {child,childUI:ui,obj}=setup(true);
+  obj.onEnable();
+  assert.equal(ui.width,500);
+  assert.equal(obj.GetFitSourceSize(0),100);
+  obj.fitSourceSize.x=240;
+  assert.equal(obj.GetFitSourceSize(0),240,'Explicit source size override');
 }
 // Prior serialized component with false stays opt-out until user checks the toggle.
 {

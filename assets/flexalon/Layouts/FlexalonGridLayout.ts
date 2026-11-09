@@ -1,7 +1,8 @@
 import { FlexalonObject } from '../Core/FlexalonObject';
+import { defaultAdapter } from '../Core/FlexalonAdapter';
 import { _decorator, Color, Enum, UITransform, Vec3 } from 'cc';
 import { LayoutBase, Item } from '../Core/FlexalonLayoutBase';
-import { Align, Axis, GridCorner, GridCellType, GridCellSizing, SizeType, align01 } from '../Core/FlexalonTypes';
+import { Align, Axis, GridCorner, GridCellType, GridCellSizing, SizeType, FitMode, align01 } from '../Core/FlexalonTypes';
 import { FlexalonGridCell } from './FlexalonGridCell';
 import { flexalonGizmos, drawLocalLineList, drawLocalLabel, rect } from '../Core/FlexalonGizmos';
 
@@ -23,6 +24,27 @@ const GRID_LABEL_COLOR = new Color(244, 244, 244, 235);
 /** Avoid spawning thousands of Graphics/Label draw calls in the Scene Editor. */
 const MAX_VISIBLE_CELLS = 400;
 const MAX_VISIBLE_LABELS = 80;
+
+/** Uniform factor: Min/Max refer to rendered size (naturalSize * |baseScale| * factor).
+ * Min takes priority if the cell is too small; the item may overflow its cell.
+ */
+export function calculateGridFitScale(natural: Vec3, effectiveBaseScale: Vec3,
+    cellWidth: number, cellHeight: number, minSize: Vec3, maxSize: Vec3): number {
+    const visualX = Math.max(0, natural.x) * Math.abs(effectiveBaseScale.x);
+    const visualY = Math.max(0, natural.y) * Math.abs(effectiveBaseScale.y);
+    const visualZ = Math.max(0, natural.z) * Math.abs(effectiveBaseScale.z);
+    const eps = 1e-8;
+    const fitX = visualX > eps ? Math.max(0, cellWidth) / visualX : Infinity;
+    const fitY = visualY > eps ? Math.max(0, cellHeight) / visualY : Infinity;
+    const ideal = Math.min(fitX, fitY);
+    const minimum = Math.max(0, visualX > eps ? Math.max(0, minSize.x) / visualX : 0,
+        visualY > eps ? Math.max(0, minSize.y) / visualY : 0,
+        visualZ > eps ? Math.max(0, minSize.z) / visualZ : 0);
+    const maximum = Math.min(visualX > eps && maxSize.x > 0 ? maxSize.x / visualX : Infinity,
+        visualY > eps && maxSize.y > 0 ? maxSize.y / visualY : Infinity,
+        visualZ > eps && maxSize.z > 0 ? maxSize.z / visualZ : Infinity);
+    return Math.max(minimum, Math.min(maximum, Number.isFinite(ideal) ? ideal : 1));
+}
 
 /**
  * Rectangle: cells can be equal sized or fit their individual columns/rows.
@@ -46,12 +68,56 @@ export class FlexalonGridLayout extends LayoutBase {
     @property({type: Enum(Align), tooltip: 'Căn ngang child bên trong cell, xét cả margin của FlexalonObject.', visible: true}) public horizontalAlign: Align = Align.Center;
     @property({type: Enum(Align), tooltip: 'Căn dọc child bên trong cell, xét cả margin của FlexalonObject.', visible: true}) public verticalAlign: Align = Align.Center;
 
+    @property({tooltip: 'Scale To Fit toàn bộ item trong Grid, giữ tỷ lệ, không thay đổi UITransform Content Size. Child có Fit Mode riêng được ưu tiên; Min/Max dựa trên kích thước sau scale.', visible: true, displayName: 'Fit Children To Cell'})
+    public fitChildrenToCell = false;
+    @property({tooltip: 'Khoảng cách chừa đều 4 phía bên trong từng ô Grid (cùng đơn vị với Cell Size).', visible: true, displayName: 'Cell Padding'})
+    public cellPadding = 0;
+
     @property({tooltip: 'Vẽ Gizmos lưới khi chọn Grid Layout (cần Cocos-Gizmos).', visible: true}) public showGrid = true;
     @property({tooltip: 'Vẽ đường bao từng cell theo cấu hình Grid hiện tại, kể cả cell trống.', visible: true}) public showCellBounds = true;
     @property({tooltip: 'Đánh dấu các cell được child sử dụng, kể cả Column/Row Span.', visible: true}) public showOccupiedCells = true;
     @property({tooltip: 'Hiển thị khoảng Column Gap / Row Gap. Chỉ hiển thị giá trị dương.', visible: true}) public showGridGaps = false;
     @property({tooltip: 'Hiển thị chỉ số cột/hàng trên cell (giới hạn 80 nhãn để tránh nặng Editor).', visible: true}) public showCellIndex = false;
 
+
+    private shouldFit(item: Item): boolean {
+        return item.object ? (item.object.fitMode === FitMode.Inherit
+            ? this.fitChildrenToCell : item.object.fitMode === FitMode.ScaleToFit)
+            : this.fitChildrenToCell;
+    }
+
+    /** Fit items should not enlarge their own cells. Their margins still occupy space. */
+    private trackItems(inner: Vec3): Item[] {
+        const pad = Math.max(0, this.cellPadding) * 2;
+        return this.items(inner, true).map(item => ({
+            ...item,
+            outer: new Vec3((this.shouldFit(item) ? item.marginLeft + item.marginRight : item.outer.x) + pad,
+                (this.shouldFit(item) ? item.marginTop + item.marginBottom : item.outer.y) + pad,
+                item.outer.z)
+        }));
+    }
+
+    /** Natural size for scaling: Fill uses original component size, NOT allocated cell size. */
+    private fitNaturalSize(item: Item, inner: Vec3): Vec3 {
+        const obj = item.object;
+        const natural = defaultAdapter.measure(item.node);
+        if (obj) {
+            const sourceX = obj.GetFitSourceSize(0);
+            const sourceY = obj.GetFitSourceSize(1);
+            if (sourceX > 0) natural.x = sourceX;
+            if (sourceY > 0) natural.y = sourceY;
+        }
+        const nested = item.node.getComponent(LayoutBase);
+        if (nested && nested !== this && nested.enabledInHierarchy &&
+            obj && (obj.widthType === SizeType.Layout || obj.heightType === SizeType.Layout)) {
+            const intrinsic = nested.measureIntrinsic(inner);
+            if (obj.widthType === SizeType.Layout) natural.x = intrinsic.x;
+            if (obj.heightType === SizeType.Layout) natural.y = intrinsic.y;
+        }
+        if (obj?.widthType === SizeType.Fixed) natural.x = obj.fixed(0);
+        if (obj?.heightType === SizeType.Fixed) natural.y = obj.fixed(1);
+        return natural;
+    }
 
     private colCount(n: number): number {
         const configured = Math.floor(this.columns);
@@ -125,7 +191,10 @@ export class FlexalonGridLayout extends LayoutBase {
     private geometry(items: Item[], inner: Vec3, intrinsic: boolean): GridGeometry {
         const { columns, rows, slots } = this.cellSlots(items);
         const hex = this.cellType === GridCellType.Hexagonal;
-        const fit = !hex && this.cellSizing === GridCellSizing.FitChildren;
+        // FitChildren has no predetermined cell extent. If ANY child uses Scale To Fit,
+        // use available parent space (Uniform) to avoid zero/feedback-sized cells.
+        const fit = !hex && this.cellSizing === GridCellSizing.FitChildren &&
+            !slots.some(slot => this.shouldFit(slot.item));
         const minW = this.uniformMinimum(slots, 'x', this.columnGap, hex);
         const minH = this.uniformMinimum(slots, 'y', this.rowGap, hex);
         let widths: number[], heights: number[];
@@ -224,7 +293,7 @@ export class FlexalonGridLayout extends LayoutBase {
         const size = new Vec3(ui.width, ui.height, 1);
         const inner = this.contentSize(size);
         // EXACT same intrinsic track measurement as arrangeChildren().
-        const g = this.geometry(this.items(inner, true), inner, false);
+        const g = this.geometry(this.trackItems(inner), inner, false);
         const origin = this.contentCenter(size);
         const hex = this.cellType === GridCellType.Hexagonal;
         if (!Number.isFinite(g.gridWidth) || !Number.isFinite(g.gridHeight)) return;
@@ -282,7 +351,7 @@ export class FlexalonGridLayout extends LayoutBase {
         if (!items.length) return;
         // When computing required cell sizes, only intrinsically sized children
         // contribute; a Fill child should grow to its cell, not grow that cell.
-        const naturalItems = this.items(inner, true);
+        const naturalItems = this.trackItems(inner);
         const measured = this.geometry(naturalItems, inner, false);
         const byNode = new Map(items.map(item => [item.node, item]));
         measured.slots.forEach((slot, index) => {
@@ -290,13 +359,46 @@ export class FlexalonGridLayout extends LayoutBase {
             const { column, row, spanC, spanR } = slot;
             const cell = this.cellGeometry(measured, column, row, spanC, spanR);
             const cellWidth = cell.width, cellHeight = cell.height;
-            const s = item.size.clone();
-            if (item.object?.widthType === SizeType.Fill) s.x = Math.max(0, cellWidth - item.marginLeft - item.marginRight) * item.object.fraction(0);
-            if (item.object?.heightType === SizeType.Fill) s.y = Math.max(0, cellHeight - item.marginTop - item.marginBottom) * item.object.fraction(1);
-            this.setItemSize(item, s);
-            const dx = (cellWidth - item.outer.x) * (align01(this.horizontalAlign) - 0.5);
-            const dy = (cellHeight - item.outer.y) * (align01(this.verticalAlign) - 0.5);
-            this.place(item, new Vec3(cell.x + dx, cell.y + dy, 0), size, index);
+            const pad = Math.max(0, this.cellPadding);
+            if (this.shouldFit(item)) {
+                // Fit overrides Fill so the UITransform's original dimensions remain intact.
+                const natural = this.fitNaturalSize(item, inner);
+                // A previously-filled UITransform may have been stretched to the
+                // last cell. Restore its *intrinsic* content size before scaling.
+                const content = item.node.getComponent(UITransform);
+                if (content && (Math.abs(content.width - natural.x) > 0.0001 ||
+                    Math.abs(content.height - natural.y) > 0.0001)) {
+                    content.setContentSize(natural.x, natural.y);
+                }
+                const base = this.baseScale(item.node);
+                const mult = item.object?.scaleMultiplier;
+                const effective = new Vec3(base.x * (mult?.x ?? 1), base.y * (mult?.y ?? 1), base.z * (mult?.z ?? 1));
+                const availableW = Math.max(0, cellWidth - item.marginLeft - item.marginRight - pad * 2);
+                const availableH = Math.max(0, cellHeight - item.marginTop - item.marginBottom - pad * 2);
+                const limits = item.object;
+                const factor = calculateGridFitScale(natural, effective, availableW, availableH,
+                    limits?.minSize ?? new Vec3(), limits?.maxSize ?? new Vec3());
+                const visual = new Vec3(natural.x * Math.abs(effective.x) * factor,
+                    natural.y * Math.abs(effective.y) * factor, natural.z * Math.abs(effective.z) * factor);
+                item.size.set(natural);
+                item.outer.set(visual.x + item.marginLeft + item.marginRight + pad * 2,
+                    visual.y + item.marginTop + item.marginBottom + pad * 2,
+                    visual.z + item.marginFront + item.marginBack);
+                const dx = (cellWidth - item.outer.x) * (align01(this.horizontalAlign) - 0.5);
+                const dy = (cellHeight - item.outer.y) * (align01(this.verticalAlign) - 0.5);
+                this.place(item, new Vec3(cell.x + dx, cell.y + dy, 0), size, index,
+                    null, { scale: factor, visualSize: visual });
+            } else {
+                const s = item.size.clone();
+                if (item.object?.widthType === SizeType.Fill) s.x = Math.max(0, cellWidth - item.marginLeft - item.marginRight - pad * 2) * item.object.fraction(0);
+                if (item.object?.heightType === SizeType.Fill) s.y = Math.max(0, cellHeight - item.marginTop - item.marginBottom - pad * 2) * item.object.fraction(1);
+                this.setItemSize(item, s);
+                item.outer.x += pad * 2;
+                item.outer.y += pad * 2;
+                const dx = (cellWidth - item.outer.x) * (align01(this.horizontalAlign) - 0.5);
+                const dy = (cellHeight - item.outer.y) * (align01(this.verticalAlign) - 0.5);
+                this.place(item, new Vec3(cell.x + dx, cell.y + dy, 0), size, index);
+            }
         });
     }
 }

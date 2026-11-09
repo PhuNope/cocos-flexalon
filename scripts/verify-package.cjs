@@ -53,3 +53,4 @@ require('../tests/fill-parent-fallback.test.cjs');
 require('../tests/layout-dirty-events.test.cjs');
 require('../tests/interaction-dirty.test.cjs');
 require('../tests/value-type-decorators.test.cjs');
+require('../tests/grid-scale-fit.test.cjs');

@@ -67,6 +67,15 @@ export class LayoutBase extends FlexalonComponent implements Layout {
     private _running = false;
     private _observedChildren = new Set<Node>();
     private static originalScales = new WeakMap<Node, Vec3>();
+    /** Stable scale captured before any Layout/Fit operation; never use last fitted scale as input. */
+    protected baseScale(node: Node): Vec3 {
+        let initial = LayoutBase.originalScales.get(node);
+        if (!initial) {
+            initial = node.scale.clone();
+            LayoutBase.originalScales.set(node, initial);
+        }
+        return initial;
+    }
 
     protected onEnable(): void {
         super.onEnable();
@@ -230,14 +239,16 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         item.outer.set(x+item.marginLeft+item.marginRight,y+item.marginTop+item.marginBottom,z+item.marginFront+item.marginBack);
     }
     /** Coordinates reference the CENTER of the item's outer/margin box. */
-    protected place(item: Item, outerCenter: Vec3, containerSize: Vec3, index = 0, rotation: Vec3 | null = null): void {
+    protected place(item: Item, outerCenter: Vec3, containerSize: Vec3, index = 0, rotation: Vec3 | null = null,
+        fit?: { scale: number; visualSize: Vec3 }): void {
         const parentCenter=this.contentCenter(containerSize);
         let pos=outerCenter.clone();
         pos.x+=(item.marginLeft-item.marginRight)/2 + parentCenter.x;
         pos.y+=(item.marginBottom-item.marginTop)/2 + parentCenter.y;
         pos.z+=(item.marginBack-item.marginFront)/2 + parentCenter.z;
         const ui=item.node.getComponent(UITransform);
-        if(ui){ pos.x+=(ui.anchorX-0.5)*item.size.x;pos.y+=(ui.anchorY-0.5)*item.size.y; }
+        const anchorSize = fit?.visualSize ?? item.size;
+        if(ui){ pos.x+=(ui.anchorX-0.5)*anchorSize.x;pos.y+=(ui.anchorY-0.5)*anchorSize.y; }
         if(item.object) pos.add(item.object.offset);
         // Modifiers are only applied to computed layout positions, never cumulative.
         const mods=this.node.getComponents('Flexalon.FlexalonRandomModifier') as unknown as FlexalonModifier[];
@@ -246,7 +257,7 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         const animator=item.node.getComponent(FlexalonLerpAnimator);
         if(animator?.enabledInHierarchy) animator.moveTo(pos);
         else if(!FlexalonMath.VecApproximately(current,pos)) item.node.setPosition(pos);
-        if(ui && !(item.object?.preserveUIContentSize)) {
+        if(ui && !fit && !(item.object?.preserveUIContentSize)) {
             const w=item.size.x,h=item.size.y;
             const needW= item.object?.widthType!==SizeType.Component;
             const needH= item.object?.heightType!==SizeType.Component;
@@ -260,16 +271,19 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         const q = new Quat();
         Quat.fromEuler(q,rot.x,rot.y,rot.z);
         if(!Quat.equals(item.node.rotation,q)) item.node.setRotation(q);
-        if(item.object) {
-            let baseline=LayoutBase.originalScales.get(item.node);
-            if(!baseline){baseline=item.node.scale.clone();LayoutBase.originalScales.set(item.node,baseline);}
-            const mult=item.object.scaleMultiplier;
-            const target=new Vec3(baseline.x*mult.x,baseline.y*mult.y,baseline.z*mult.z);
+        // Apply absolute scale from the ORIGINAL baseline. Switching Fit off
+        // restores even children with no FlexalonObject.
+        if(item.object || fit || LayoutBase.originalScales.has(item.node)) {
+            const baseline=this.baseScale(item.node);
+            const mult=item.object?.scaleMultiplier;
+            const factor=fit?.scale ?? 1;
+            const target=new Vec3(baseline.x*(mult?.x ?? 1)*factor,
+                baseline.y*(mult?.y ?? 1)*factor,baseline.z*(mult?.z ?? 1)*factor);
             if(!FlexalonMath.VecApproximately(item.node.scale,target))item.node.setScale(target);
         }
         // No automatic multiplication of scale every frame.
         const result=item.node.getComponent(FlexalonResult);
-        if(result){result.LayoutPosition.set(pos);result.LayoutSize.set(item.size);result.LayoutRotation = q.clone();result.SiblingIndex=index;}
+        if(result){result.LayoutPosition.set(pos);result.LayoutSize.set(fit?.visualSize ?? item.size);result.LayoutRotation = q.clone();result.SiblingIndex=index;}
         const nested=item.node.getComponent(LayoutBase);
         if(nested && nested!==this && nested.enabledInHierarchy) nested.arrangeChildren(item.size.clone());
     }
