@@ -1,4 +1,4 @@
-# Flexalon Unified Extension v0.5.6 — Cocos Creator >= 3.8.2
+# Flexalon Unified Extension v0.5.10 — Cocos Creator >= 3.8.2
 
 **One extension, everything included.** The package carries all 43 runtime TypeScript files, 18 Custom Inspectors, the Guide Panel, and an offline HTML guide.
 
@@ -37,7 +37,7 @@ The script **does not delete any legacy source**: it backs up the old folder out
 
 - `assets/flexalon`: runtime TypeScript (`.meta` UUIDs pinned for updates).
 - `src`, `dist`: extension UI and compiled JS. Only `src` is compiled by the extension's TypeScript config; **do not compile `assets/flexalon` using Node/extension `tsc`**. Creator compiles it as engine assets.
-- `src/contributions/inspector`: 18 Custom Inspector panels; `src/panels/guide`: 19 illustrated Vietnamese lessons.
+- `src/contributions/inspector`: 18 Custom Inspector panels; `src/panels/guide`: 20 illustrated Vietnamese lessons.
 - `docs/Flexalon_Guide_VI.html`: offline HTML.
 - `npm run build`: rebuild inspector/editor JS (requires global/project `tsc`).
 - `npm run verify`: validate manifest, runtime and `.meta` mappings offline.

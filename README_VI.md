@@ -1,4 +1,4 @@
-# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.9
+# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.10
 
 Đây là **một extension duy nhất**, bao gồm:
 
@@ -22,7 +22,7 @@ Ví dụ import từ mã dự án:
 import { FlexalonGridLayout } from 'db://flexalon-tools/flexalon/Layouts/FlexalonGridLayout';
 ```
 
-## Scale To Fit: một tùy chọn dùng chung (nhánh dev)
+## Scale To Fit: một tùy chọn dùng chung (v0.5.10)
 
 Các loại Flexalon Layout sử dụng chung nhóm **Scale To Fit** trong Inspector:
 

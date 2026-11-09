@@ -2,6 +2,46 @@
 
 Những thay đổi đáng chú ý của các bản phát hành ổn định.
 
+## v0.5.10 — 2026-11-09
+
+**Phát hành:** 09/11/2026
+**Hỗ trợ:** Cocos Creator >= 3.8.2
+**Nâng cấp từ:** v0.5.9
+
+### Scale To Fit cho tất cả Layout
+
+- Bổ sung Scale To Fit cho **Grid, Flexible, Align, Circle, Curve, Shape, Random** với một bộ property chung: `Fit Children`, `Fit Padding`, `Fit Item Size`.
+- FlexalonObject hỗ trợ `Fit Mode = Inherit | None | ScaleToFit`, `Fit Source Size` và kiểm tra `Min/Max Size` theo kích thước thực tế **Size × |Scale|**; ưu tiên Min khi ô quá nhỏ, có thể tràn.
+- Scale bảo toàn tỷ lệ object, có thể phóng to/thu nhỏ, không cộng dồn scale sau nhiều lần cập nhật.
+- Grid có `Cell Padding` riêng. Gộp `Fit Children To Cell` cũ vào `Fit Children` chung, ẩn property cũ và chuyển giá trị khi bật component để Scene/Prefab từ các bản dev trước giữ cấu hình. Dùng Cell Size (cả Column/Row Span) làm giới hạn Fit.
+- Flexible chỉ một vài child bật Fit: phân bổ không gian còn lại sau child thường và Gap; hỗ trợ Wrap và dùng Fill weight khi phân bổ.
+- Flexible `Width/Height Type = Layout`: tính kích thước theo **Visual Size sau Scale To Fit**, không dùng lại Content Size frame trước làm giới hạn. `Fit Item Size`/Max Size là giới hạn rõ ràng; không có giới hạn thì giữ size tự nhiên.
+
+### Sửa lỗi chuyển FlexibleLayout → GridLayout / cache stale
+
+- Thay cache scale tĩnh tồn tại mãi trên Node bằng trạng thái riêng cho **layout đang sở hữu child**.
+- Khi disable hoặc đổi layout, khôi phục scale và UITransform Content Size trước đó khi giá trị vẫn là output của layout cũ; không ghi đè thay đổi thủ công của người dùng.
+- Khi chỉnh Node Scale hoặc UITransform trực tiếp trong Inspector, lưu giá trị mới làm nguồn để lần sau không ép quay về scale cache cũ.
+- Khi nhiều layout cùng có mặt trên một Node, layout enabled được thêm sau cùng là owner; layout cũ không còn viết transform khi bị thay thế.
+- Khi đổi layout, khôi phục trạng thái trước khi layout mới đo kích thước item để tránh sai cache `Fill`.
+- **Lưu ý:** item `Width/Height Type = Fill` và Grid Fit tắt vẫn được phân bổ theo kích thước Cell (ví dụ 120 × 108). Nếu muốn tự sửa `UITransform = 40 × 36`, chuyển sang `Component` hoặc bật `Preserve UI Content Size`.
+
+### Guide và kiểm thử
+
+- Guide Panel tiếng Việt tăng lên **20 bài**; thêm bài `Scale To Fit (chi tiết)` với sơ đồ, hướng dẫn từng bước và ví dụ Grid/Flexible/Min-Max/Fill/Layout.
+- Tài liệu offline HTML, README Việt/Anh và Inspector được cập nhật đồng bộ.
+- Regression tests cho Grid Fit, Flexible intrinsic sizing, đổi layout, disable/re-enable, UITransform Fill source, chỉnh scale thủ công và phục hồi cache.
+- Build TypeScript, behavioral tests, manifest và CRC ZIP kiểm tra tự động trên GitHub Actions. Người dùng đã test bản dev chuyển layout thành công trước khi phát hành.
+
+### Hướng dẫn cập nhật
+
+1. Lưu Scene/Prefab, sao lưu project.
+2. Dùng **Extensions → Flexalon → Check for Updates** để cập nhật hoặc cài ZIP thủ công vào `extensions/flexalon-tools`.
+3. Với Scene/Prefab tạo từ bản dev cũ dùng `Fit Children To Cell`, mở và lưu lại sau khi version mới tự chuyển thành `Fit Children`.
+4. Nếu bạn muốn nhập trực tiếp width/height UITransform của item Grid mà không bị `Fill` ghi đè, đặt `Width/Height Type = Component` hoặc bật `Preserve UI Content Size`.
+
+---
+
 ## v0.5.9 — 2026-10-24
 
 **Phát hành:** 24/10/2026  
