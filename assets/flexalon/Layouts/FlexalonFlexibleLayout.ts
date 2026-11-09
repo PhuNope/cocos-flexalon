@@ -1,6 +1,6 @@
 import { FlexalonObject } from '../Core/FlexalonObject';
 import { _decorator, Enum, Vec3, UITransform } from 'cc';
-import { LayoutBase, Item, FitResult } from '../Core/FlexalonLayoutBase';
+import { LayoutBase, Item, FitResult, calculateFitScale } from '../Core/FlexalonLayoutBase';
 import { Align, Direction, GapOptions, SizeType, axisIndex, axisSign, axisValue, setAxis, align01 } from '../Core/FlexalonTypes';
 const {ccclass, property, menu, executeInEditMode,requireComponent}=_decorator;
 /** Linear / multi-line 2D flex with fill-weight distribution. Z direction works without wrapping. */
@@ -43,7 +43,7 @@ export class FlexalonFlexibleLayout extends LayoutBase {
         if (current.length > 0) lines.push(current);
         return lines;
     }
-    public measureIntrinsic(available: Vec3): Vec3 {
+    private measureWithoutFit(available: Vec3): Vec3 {
         const main = axisIndex(this.direction);
         const wrapAxis = axisIndex(this.wrapDirection);
         const canWrap = this.wrap && main !== wrapAxis;
@@ -78,6 +78,151 @@ export class FlexalonFlexibleLayout extends LayoutBase {
         result.z += this.paddingBack + this.paddingFront;
         return result;
     }
+
+    /**
+     * A Layout axis has NO intrinsic available space. Never feed a previous
+     * UITransform size back into its children's fit calculation.
+     * A configured owner Max Size is an external cap, however.
+     */
+    private fitConstraints(available: Vec3): Vec3 {
+        const owner=this.node.getComponent(FlexalonObject);
+        const ui=this.node.getComponent(UITransform);
+        const limits=this.contentSize(available);
+        for(let axis=0;axis<3;axis++){
+            const kind=owner?.typeForAxis(axis)??SizeType.Component;
+            const pad=axis===0?this.paddingLeft+this.paddingRight:
+                axis===1?this.paddingTop+this.paddingBottom:this.paddingFront+this.paddingBack;
+            let bound=axisValue(limits,axis);
+            if(kind===SizeType.Layout){
+                const max=axis===0?owner!.maxSize.x:axis===1?owner!.maxSize.y:owner!.maxSize.z;
+                bound=max>0?Math.max(0,max-pad):Infinity;
+            }else if(kind===SizeType.Fixed){
+                bound=Math.max(0,owner!.clampSize(axis,owner!.fixed(axis))-pad);
+            }else if(kind===SizeType.Component && ui && axis<2){
+                bound=Math.max(0,(axis===0?ui.width:ui.height)-pad);
+            }
+            setAxis(limits,axis,bound);
+        }
+        return limits;
+    }
+
+    /** Compute a stable item measurement without changing UITransform or node scale. */
+    private intrinsicFitItem(item: Item, bounds: Vec3, content: Vec3): FitResult {
+        const natural=this.fitNaturalSize(item,content);
+        const original=this.baseScale(item.node),mult=item.object?.scaleMultiplier;
+        const scale=new Vec3(original.x*(mult?.x??1),original.y*(mult?.y??1),original.z*(mult?.z??1));
+        const pad=Math.max(0,this.fitPadding);
+        const factor=calculateFitScale(natural,scale,
+            Math.max(0,bounds.x-item.marginLeft-item.marginRight-2*pad),
+            Math.max(0,bounds.y-item.marginTop-item.marginBottom-2*pad),
+            item.object?.minSize??new Vec3(),item.object?.maxSize??new Vec3());
+        const visual=new Vec3(natural.x*Math.abs(scale.x)*factor,
+            natural.y*Math.abs(scale.y)*factor,natural.z*Math.abs(scale.z)*factor);
+        item.size.set(natural);
+        item.outer.set(visual.x+item.marginLeft+item.marginRight+2*pad,
+            visual.y+item.marginTop+item.marginBottom+2*pad,
+            visual.z+item.marginFront+item.marginBack);
+        return {scale:factor,visualSize:visual};
+    }
+
+    /**
+     * Shared line allocation for BOTH measurement and placement.
+     * - Unbounded Layout axes: use natural visual size; only explicit limits
+     *   (Fit Item Size, item Max Size, the other Fixed axis) can change scale.
+     * - Bounded axes: subtract regular items and gaps, then distribute only
+     *   remaining space between Fill and Scale To Fit using Fill weights.
+     */
+    private allocateFitLines(items: Item[], available: Vec3, measuring: boolean):
+        {lines:Item[][]; fitted:Map<Item,FitResult>; main:number;cross:number;depth:number;content:Vec3} {
+        const main=axisIndex(this.direction);
+        const wrapAxis=axisIndex(this.wrapDirection),canWrap=this.wrap&&wrapAxis!==main;
+        const cross=canWrap?wrapAxis:(main===0?1:0);
+        const depth=[0,1,2].find(axis=>axis!==main&&axis!==cross)!;
+        const content=this.fitConstraints(available);
+        const fitPad=Math.max(0,this.fitPadding);
+        const axisMargin=(item:Item,axis:number)=>axis===0?item.marginLeft+item.marginRight:
+            axis===1?item.marginTop+item.marginBottom:item.marginFront+item.marginBack;
+        // Line breaks are based on minimum occupied size, never the big source
+        // size of an item whose Scale To Fit can shrink.
+        for(const item of items){
+            if(this.shouldFit(item)){
+                const min=item.object?.minSize;
+                const visibleMin=main===0?(min?.x??0):main===1?(min?.y??0):(min?.z??0);
+                setAxis(item.outer,main,Math.max(0,visibleMin)+axisMargin(item,main)+2*fitPad);
+            }else if(item.object?.typeForAxis(main)===SizeType.Fill){
+                const newSize=item.size.clone();
+                setAxis(newSize,main,item.object.clampSize(main,0));
+                this.setItemSize(item,newSize);
+            }
+        }
+        const lines=this.formLines(items,main,axisValue(content,main),canWrap);
+        const crossExtent=axisValue(content,cross);
+        const crossSlot=canWrap&&Number.isFinite(crossExtent)
+            ?Math.max(0,(crossExtent-Math.max(0,lines.length-1)*this.wrapGap)/Math.max(1,lines.length))
+            :crossExtent;
+        const fitted=new Map<Item,FitResult>();
+        for(const line of lines){
+            const fixedGap=this.gap*Math.max(0,line.length-1);
+            const fixed=line.reduce((sum,item)=>{
+                if(this.shouldFit(item))return sum+axisMargin(item,main)+2*fitPad;
+                return sum+axisValue(item.outer,main);
+            },0);
+            const growing=line.filter(item=>this.shouldFit(item) ||
+                item.object?.typeForAxis(main)===SizeType.Fill);
+            const weight=(item:Item):number=>{
+                const fraction=item.object?.fraction(main);
+                return Number.isFinite(fraction)&&fraction!>=0?fraction!:1;
+            };
+            let totalWeight=growing.reduce((sum,item)=>sum+weight(item),0);
+            if(totalWeight<=0)totalWeight=growing.length;
+            const availableMain=axisValue(content,main);
+            const remaining=Number.isFinite(availableMain)?Math.max(0,availableMain-fixed-fixedGap):Infinity;
+            for(const item of line){
+                if(this.shouldFit(item)){
+                    const w=totalWeight>0?(weight(item)>0?weight(item):0)/totalWeight:0;
+                    const allotment=Number.isFinite(remaining)
+                        ?remaining*(totalWeight>0?w:1/Math.max(1,growing.length)):Infinity;
+                    const bounds=content.clone();
+                    setAxis(bounds,main,Number.isFinite(allotment)
+                        ?allotment+axisMargin(item,main)+2*fitPad:Infinity);
+                    setAxis(bounds,cross,crossSlot);
+                    const limited=this.fitBounds(bounds);
+                    const fit=measuring?this.intrinsicFitItem(item,limited,content)
+                        :this.fitItem(item,limited,content);
+                    fitted.set(item,fit);
+                }else if(item.object?.typeForAxis(main)===SizeType.Fill &&
+                    Number.isFinite(remaining)&&!measuring){
+                    const w=totalWeight>0?weight(item)/totalWeight:0;
+                    const next=item.size.clone();
+                    setAxis(next,main,Math.max(0,remaining*w));
+                    this.setItemSize(item,next);
+                }
+            }
+        }
+        return {lines,fitted,main,cross,depth,content};
+    }
+
+    public measureIntrinsic(available: Vec3): Vec3 {
+        // Keep all previous sizing semantics for layouts without fitted items.
+        const measuringItems=this.items(this.contentSize(available),true);
+        if(!measuringItems.some(item=>this.shouldFit(item)))return this.measureWithoutFit(available);
+        const {lines,main,cross,depth}=this.allocateFitLines(measuringItems,available,true);
+        const totalMain=lines.reduce((max,line)=>Math.max(max,
+            line.reduce((sum,item)=>sum+axisValue(item.outer,main),0)+
+            Math.max(0,line.length-1)*this.gap),0);
+        const totalCross=lines.reduce((sum,line)=>sum+line.reduce(
+            (max,item)=>Math.max(max,axisValue(item.outer,cross)),0),0)+
+            Math.max(0,lines.length-1)*(this.wrap&&axisIndex(this.wrapDirection)!==main?this.wrapGap:0);
+        const totalDepth=measuringItems.reduce((max,item)=>Math.max(max,axisValue(item.outer,depth)),0);
+        const result=new Vec3();
+        setAxis(result,main,totalMain);
+        setAxis(result,cross,totalCross);
+        setAxis(result,depth,totalDepth);
+        result.x+=this.paddingLeft+this.paddingRight;
+        result.y+=this.paddingTop+this.paddingBottom;
+        result.z+=this.paddingFront+this.paddingBack;
+        return result;
+    }
     public arrangeChildren(size: Vec3): void {
         const content=this.contentSize(size);
         const main=axisIndex(this.direction), mainSign=axisSign(this.direction);
@@ -87,46 +232,9 @@ export class FlexalonFlexibleLayout extends LayoutBase {
         const crossSign=this.wrap && wrapAxis!==main ? axisSign(this.wrapDirection) : 1;
         const depth=[0,1,2].find(a=>a!==main && a!==cross)!;
         const items=this.items(content);
-        const fitted=new Map<Item,FitResult>();
         if(items.some(item=>this.shouldFit(item))){
-            // Allocate a stable per-item slot BEFORE deciding line breaks.
-            // A Fit child must not reserve its (potentially huge) Fill dimensions.
-            const mayWrap=this.wrap&&cross!==main;
-            const mainExtent=Math.max(0,axisValue(content,main));
-            let itemsPerLine=items.length;
-            if(mayWrap){
-                const configured=Math.floor(this.maxItemsPerLine);
-                if(configured>0)itemsPerLine=Math.min(items.length,configured);
-                else{
-                    const naturalExtent=items.reduce((sum,item)=>{
-                        if(!this.shouldFit(item))return sum+axisValue(item.outer,main);
-                        const natural=this.fitNaturalSize(item,content),scale=this.baseScale(item.node);
-                        const mult=item.object?.scaleMultiplier;
-                        return sum+(main===0?natural.x*Math.abs(scale.x*(mult?.x??1)):
-                            main===1?natural.y*Math.abs(scale.y*(mult?.y??1)):
-                            natural.z*Math.abs(scale.z*(mult?.z??1)));
-                    },0)/Math.max(1,items.length);
-                    itemsPerLine=Math.min(items.length,Math.max(1,Math.floor(
-                        (mainExtent+this.gap)/Math.max(0.001,naturalExtent+this.gap))));
-                }
-            }
-            const lines=Math.max(1,Math.ceil(items.length/Math.max(1,itemsPerLine)));
-            const availableMain=Math.max(0,(mainExtent-Math.max(0,itemsPerLine-1)*this.gap)/Math.max(1,itemsPerLine));
-            const availableCross=mayWrap
-                ?Math.max(0,(axisValue(content,cross)-Math.max(0,lines-1)*this.wrapGap)/lines)
-                :Math.max(0,axisValue(content,cross));
-            const maxSlot=content.clone();
-            setAxis(maxSlot,main,availableMain);
-            setAxis(maxSlot,cross,availableCross);
-            for(const item of items)if(this.shouldFit(item)){
-                fitted.set(item,this.fitItem(item,this.fitBounds(maxSlot),content));
-            }
-        }
-        // Main-axis Fill consumes free space only when NOT overridden by Scale To Fit.
-        for(const i of items){
-            if(!fitted.has(i) && i.object?.typeForAxis(main)===SizeType.Fill){
-                const next=i.size.clone();setAxis(next,main,i.object.clampSize(main,0));this.setItemSize(i,next);
-            }
+            this.arrangeWithFit(items,size);
+            return;
         }
         if(!items.length)return;
         const lines = this.formLines(items, main, axisValue(content, main), this.wrap && cross !== main);
@@ -157,6 +265,47 @@ export class FlexalonFlexibleLayout extends LayoutBase {
                 setAxis(pos,cross,crossSign*(crossCursor + (lineCross[row]-crossOuter)*align01(this.crossAlign)+crossOuter/2));
                 setAxis(pos,depth,this.aligned(axisValue(content,depth),axisValue(i.outer,depth),Align.Center));
                 this.place(i,pos,size,itemIndex++,null,fitted.get(i));
+                cursor+=mainOuter+gap;
+            });
+            crossCursor+=lineCross[row]+this.wrapGap;
+        });
+    }
+
+    private arrangeWithFit(items:Item[],size:Vec3):void{
+        const {lines,fitted,main,cross,depth,content}=this.allocateFitLines(items,size,false);
+        const mainSign=axisSign(this.direction);
+        const wrapAxis=axisIndex(this.wrapDirection);
+        const crossSign=this.wrap&&wrapAxis!==main?axisSign(this.wrapDirection):1;
+        const lineCross=lines.map(line=>line.reduce((v,item)=>Math.max(v,axisValue(item.outer,cross)),0));
+        const overallCross=lineCross.reduce((sum,v)=>sum+v,0)+Math.max(0,lines.length-1)*this.wrapGap;
+        const availableCross=axisValue(this.contentSize(size),cross);
+        let crossCursor=-availableCross/2+
+            (availableCross-overallCross)*align01(this.wrapAlign);
+        let itemIndex=0;
+        lines.forEach((line,row)=>{
+            const availableMain=axisValue(this.contentSize(size),main);
+            const occupied=line.reduce((sum,item)=>sum+axisValue(item.outer,main),0);
+            const remainder=Math.max(0,availableMain-occupied);
+            let gap=this.gap,leading=0;
+            if(this.gapOptions===GapOptions.SpaceBetween&&line.length>1){
+                gap=remainder/(line.length-1);
+            }else if(this.gapOptions===GapOptions.SpaceAround){
+                gap=remainder/line.length;leading=gap/2;
+            }else if(this.gapOptions===GapOptions.SpaceEvenly){
+                gap=remainder/(line.length+1);leading=gap;
+            }else {
+                leading=(availableMain-(occupied+gap*Math.max(0,line.length-1)))*align01(this.mainAlign);
+            }
+            let cursor=-availableMain/2+leading;
+            line.forEach(item=>{
+                const mainOuter=axisValue(item.outer,main),crossOuter=axisValue(item.outer,cross);
+                const pos=new Vec3();
+                setAxis(pos,main,mainSign*(cursor+mainOuter/2));
+                setAxis(pos,cross,crossSign*(crossCursor+
+                    (lineCross[row]-crossOuter)*align01(this.crossAlign)+crossOuter/2));
+                setAxis(pos,depth,this.aligned(axisValue(this.contentSize(size),depth),
+                    axisValue(item.outer,depth),Align.Center));
+                this.place(item,pos,size,itemIndex++,null,fitted.get(item));
                 cursor+=mainOuter+gap;
             });
             crossCursor+=lineCross[row]+this.wrapGap;

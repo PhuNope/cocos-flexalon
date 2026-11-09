@@ -19,11 +19,12 @@ class UITransform{
  setContentSize(w,h){this.width=w;this.height=h;}
 }
 class Node{
- constructor(){this.scale=new Vec3(1,1,1);this.position=new Vec3();this.ui=new UITransform();this.rotation=new Quat();}
+ constructor(){this.scale=new Vec3(1,1,1);this.position=new Vec3();this.ui=new UITransform();this.rotation=new Quat();
+   this.layoutObject=null;this.children=[];this.active=true;this.activeInHierarchy=true;this.hideFlags=0;this.parent=null;}
  setScale(s){this.scale.set(s);}
  setPosition(p){this.position.set(p);}
  setRotation(q){this.rotation=q.clone();}
- getComponent(C){return C===UITransform?this.ui:null;}
+ getComponent(C){return C===UITransform?this.ui:C===FlexalonObject?this.layoutObject:null;}
  getComponents(){return [];}
 }
 const FitMode={Inherit:0,None:1,ScaleToFit:2};
@@ -31,8 +32,30 @@ const SizeType={Fixed:0,Fill:1,Component:2,Layout:3};
 const dec={ccclass:()=>C=>C,property:()=>()=>{},executeInEditMode:C=>C,requireComponent:()=>C=>C};
 const cc={_decorator:dec,CCObject:{Flags:{DontSave:1}},Vec3,UITransform,Quat,Node,Enum:x=>x};
 class FlexalonComponent{constructor(){this.enabledInHierarchy=true;}}
-class FlexalonObject{}
-const t={FitMode,SizeType,Align:{Center:1},
+class FlexalonObject{
+ constructor(widthType=SizeType.Component,heightType=SizeType.Component){
+   this.widthType=widthType;this.heightType=heightType;this.depthType=SizeType.Component;
+   this.size=v(100,100,1);this.minSize=v();this.maxSize=v();
+   this.scaleMultiplier=v(1,1,1);this.fitMode=FitMode.None;this.offset=v();this.rotationOffset=v();
+   this.marginLeft=0;this.marginRight=0;this.marginTop=0;this.marginBottom=0;this.marginFront=0;this.marginBack=0;
+   this.fill=v(1,1,1);this.preserveUIContentSize=false;
+ }
+ typeForAxis(a){return a===0?this.widthType:a===1?this.heightType:this.depthType;}
+ fixed(a){return a===0?this.size.x:a===1?this.size.y:this.size.z;}
+ clampSize(a,val){
+   const min=a===0?this.minSize.x:a===1?this.minSize.y:this.minSize.z;
+   const max=a===0?this.maxSize.x:a===1?this.maxSize.y:this.maxSize.z;
+   return Math.max(min,max>0?Math.min(max,val):val);
+ }
+ fraction(a){return a===0?this.fill.x:a===1?this.fill.y:this.fill.z;}
+ GetFitSourceSize(){return 0;}
+ SyncFixedUIContentSize(){}
+}
+const t={FitMode,SizeType,Align:{Start:0,Center:1,End:2},
+ Direction:{PositiveX:0,NegativeX:1,PositiveY:2,NegativeY:3,PositiveZ:4,NegativeZ:5},
+ GapOptions:{Fixed:0,SpaceBetween:1,SpaceAround:2,SpaceEvenly:3},
+ axisIndex:direction=>Math.floor(direction/2),
+ axisSign:direction=>direction%2===0?1:-1,
  axisValue:(v,i)=>i===0?v.x:i===1?v.y:v.z,
  setAxis:(v,i,val)=>{if(i===0)v.x=val;else if(i===1)v.y=val;else v.z=val;},
  align01:a=>a===0?0:a===2?1:.5};
@@ -107,4 +130,101 @@ for(const name of layouts){
 const inspector=fs.readFileSync(path.join(__dirname,'../src/contributions/inspector/shared.js'),'utf8');
 for(const property of ['fitMode','fitSourceSize','fitChildren','fitPadding','fitItemSize'])
  assert.ok(inspector.includes("'"+property+"'"),'Missing Inspector field '+property);
-console.log('PASS: Shared Scale To Fit across 7 layouts, visual Min/Max, Fit Mode override, restoring scale, intrinsic Fill size, spatial bounds and Inspector');
+
+// FlexibleLayout: Width/Height=Layout must measure POST-FIT visual size, not stale UITransform.
+const flexibleFile=path.resolve(__dirname,'../assets/flexalon/Layouts/FlexalonFlexibleLayout.ts');
+const flexibleJS=ts.transpileModule(fs.readFileSync(flexibleFile,'utf8'),{
+ fileName:flexibleFile,compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,experimentalDecorators:true}
+}).outputText;
+const flexModule=new Module(flexibleFile,module);flexModule.filename=flexibleFile;
+flexModule.paths=Module._nodeModulePaths(path.dirname(flexibleFile));
+const flexNative=flexModule.require.bind(flexModule);
+const flexMocks={
+ cc,
+ '../Core/FlexalonObject':{FlexalonObject},
+ '../Core/FlexalonLayoutBase':{LayoutBase,calculateFitScale},
+ '../Core/FlexalonTypes':t
+};
+flexModule.require=name=>Object.hasOwn(flexMocks,name)?flexMocks[name]:flexNative(name);
+flexModule._compile(flexibleJS,flexibleFile);
+const {FlexalonFlexibleLayout}=flexModule.exports;
+function createFlex({
+ widthType=SizeType.Layout,heightType=SizeType.Layout,
+ parentWidth=42,parentHeight=55,ownerMax=v(),fitItemSize=v(),wrap=false,maxItemsPerLine=0,
+ childWidth=500,childHeight=100,childMax=v(),childMin=v()
+}={}){
+ const parent=new Node();
+ parent.ui.setContentSize(parentWidth,parentHeight);
+ parent.layoutObject=new FlexalonObject(widthType,heightType);
+ parent.layoutObject.size=v(600,100,1);
+ parent.layoutObject.maxSize=ownerMax;
+ const layout=new FlexalonFlexibleLayout();
+ layout.node=parent;layout.gap=10;layout.wrapGap=10;
+ layout.fitChildren=false;layout.fitItemSize=fitItemSize;layout.wrap=wrap;
+ layout.maxItemsPerLine=maxItemsPerLine;
+ function add(width,height,fitMode=FitMode.None){
+   const child=new Node();child.ui.setContentSize(width,height);
+   child.layoutObject=new FlexalonObject(fitMode===FitMode.ScaleToFit?SizeType.Fill:SizeType.Component,
+     fitMode===FitMode.ScaleToFit?SizeType.Fill:SizeType.Component);
+   child.layoutObject.fitMode=fitMode;
+   if(fitMode===FitMode.ScaleToFit){child.layoutObject.maxSize=childMax;child.layoutObject.minSize=childMin;}
+   child.parent=parent;parent.children.push(child);
+   return child;
+ }
+ const A=add(100,100),B=add(200,100),C=add(childWidth,childHeight,FitMode.ScaleToFit);
+ const update=()=>layout.ForceUpdate();
+ return {parent,layout,A,B,C,update};
+}
+{
+ const f=createFlex();
+ f.update();
+ approx(f.parent.ui.width,820);approx(f.parent.ui.height,100);
+ approx(f.C.scale.x,1);approx(f.C.ui.width,500);
+ f.update();approx(f.parent.ui.width,820);approx(f.C.scale.x,1); // no feedback drift
+}
+{
+ const f=createFlex({fitItemSize:v(280,0)});
+ f.update();
+ approx(f.parent.ui.width,600);approx(f.parent.ui.height,100);
+ approx(f.C.scale.x,.56);approx(f.C.ui.width,500);
+ f.update();approx(f.parent.ui.width,600);approx(f.C.scale.x,.56);
+}
+{
+ const f=createFlex({childMax:v(280,0)});
+ f.update();approx(f.parent.ui.width,600);approx(f.C.scale.x,.56);
+}
+{
+ // Parent Layout width, Fixed height: constrained Y determines visual X.
+ const f=createFlex({heightType:SizeType.Fixed,childHeight:200});
+ f.update();
+ approx(f.parent.ui.width,570);approx(f.C.scale.x,.5);
+ approx(f.parent.ui.height,55); // Fixed axis is calculated but contentSize is unchanged without Fixed UI sync mock
+ f.update();approx(f.parent.ui.width,570);
+}
+{
+ // Parent Fixed width, Layout height: C receives leftover width after A+B+gaps.
+ const f=createFlex({widthType:SizeType.Fixed});
+ f.update();
+ approx(f.parent.ui.height,100);approx(f.C.scale.x,.56);
+ approx(f.A.scale.x,1);approx(f.B.scale.x,1);
+ f.update();approx(f.C.scale.x,.56);approx(f.parent.ui.height,100);
+}
+{
+ // Parent max bounds act as external limit even when parent axis = Layout.
+ const f=createFlex({ownerMax:v(600,0)});
+ f.update();approx(f.parent.ui.width,600);approx(f.C.scale.x,.56);
+}
+{
+ const f=createFlex({fitItemSize:v(280,0),wrap:true,maxItemsPerLine:2});
+ f.update();
+ approx(f.parent.ui.width,310);approx(f.parent.ui.height,166);
+ approx(f.C.scale.x,.56);
+}
+{
+ // Child minimum remains authoritative even if the remaining slot cannot fit it.
+ const f=createFlex({widthType:SizeType.Fixed,childMin:v(400,0)});
+ f.update();approx(f.C.scale.x,.8); // visual width 400 > available 280
+ f.update();approx(f.C.scale.x,.8);
+}
+
+console.log('PASS: Shared Scale To Fit across 7 layouts, Flexible Layout intrinsic size and remaining-space allocation, visual Min/Max, Fit Mode override and no feedback');
