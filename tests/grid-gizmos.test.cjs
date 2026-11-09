@@ -18,7 +18,7 @@ for(const property of ['showGrid','showCellBounds','showOccupiedCells','showGrid
 assert.ok(grid.includes('private cellGeometry('),'Grid and Gizmos must share cell geometry');
 assert.ok(grid.includes('this.cellGeometry(measured, column, row, spanC, spanR)'),'Arrange must use shared cell geometry');
 assert.ok(grid.includes('const cell = this.cellGeometry(g, column, row);'),'Gizmos must use shared cell geometry');
-assert.ok(grid.includes('this.geometry(this.items(inner, true), inner, false)'),'Gizmos must measure tracks exactly like arrangeChildren');
+assert.ok(grid.includes('this.geometry(this.trackItems(inner), inner, false)') && grid.includes('const naturalItems = this.trackItems(inner)'),'Gizmos must measure tracks exactly like arrangeChildren');
 assert.ok(grid.includes('this.drawCell(gizmo, cell, origin, hex && slot.spanC === 1 && slot.spanR === 1)'),'Cell spans and hexagonal layouts must be visualized');
 assert.ok(grid.includes('MAX_VISIBLE_CELLS = 400')&&grid.includes('MAX_VISIBLE_LABELS = 80'),'Bound Editor draw workload');
 assert.ok(core.includes('drawLocalLabel(')&&core.includes('anchorFor(node)'),'Reuse single installed Cocos-Gizmos runtime');
