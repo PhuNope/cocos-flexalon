@@ -14,7 +14,10 @@ export class FlexalonAlignLayout extends LayoutBase {
     public arrangeChildren(size: Vec3): void {
         const content=this.contentSize(size);
         this.items(content).forEach((i,index)=>{
-            this.place(i,new Vec3(this.aligned(content.x,i.outer.x,this.horizontalAlign),this.aligned(content.y,i.outer.y,this.verticalAlign),this.aligned(content.z,i.outer.z,this.depthAlign)),size,index);
+            const fit=this.shouldFit(i)?this.fitItem(i,this.fitBounds(content),content):undefined;
+            this.place(i,new Vec3(this.aligned(content.x,i.outer.x,this.horizontalAlign),
+                this.aligned(content.y,i.outer.y,this.verticalAlign),
+                this.aligned(content.z,i.outer.z,this.depthAlign)),size,index,null,fit);
         });
     }
 }

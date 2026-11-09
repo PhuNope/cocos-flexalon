@@ -12,6 +12,12 @@ export class FlexalonRandomLayout extends LayoutBase {
     @property({ tooltip: "Phạm vi rải trên mỗi trục theo tỉ lệ kích thước nội dung (1 = 100%; 0 = không rải).", visible: true}) public normalizedExtent=new Vec3(1,1,0);
     public arrangeChildren(size:Vec3):void{
         const content=this.contentSize(size),random=FlexalonMath.Seeded(this.seed);
-        this.items(content).forEach((i,k)=>this.place(i,new Vec3((random()-.5)*content.x*this.normalizedExtent.x,(random()-.5)*content.y*this.normalizedExtent.y,(random()-.5)*content.z*this.normalizedExtent.z),size,k));
+        this.items(content).forEach((i,k)=>{
+            const pos=new Vec3((random()-.5)*content.x*this.normalizedExtent.x,
+                (random()-.5)*content.y*this.normalizedExtent.y,
+                (random()-.5)*content.z*this.normalizedExtent.z);
+            const fit=this.shouldFit(i)?this.fitItem(i,this.spatialFitBounds(i,content),content):undefined;
+            this.place(i,pos,size,k,null,fit);
+        });
     }
 }

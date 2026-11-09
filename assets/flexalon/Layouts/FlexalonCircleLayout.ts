@@ -115,7 +115,8 @@ export class FlexalonCircleLayout extends LayoutBase {
     }
 
     public arrangeChildren(size: Vec3): void {
-        const items = this.items(this.contentSize(size));
+        const content=this.contentSize(size);
+        const items = this.items(content);
         const n = items.length;
         items.forEach((item, k) => {
             const angle = this.childAngle(k, n);
@@ -127,9 +128,10 @@ export class FlexalonCircleLayout extends LayoutBase {
             if (this.plane === Plane.XY) { pos.x = x; pos.y = y; }
             else if (this.plane === Plane.XZ) { pos.x = x; pos.z = y; }
             else { pos.y = x; pos.z = y; }
+            const fit=this.shouldFit(item)?this.fitItem(item,this.spatialFitBounds(item,content),content):undefined;
             this.place(item, pos, size, k,
                 this.rotateToTangent && this.plane === Plane.XY
-                    ? new Vec3(0, 0, angle + 90) : null);
+                    ? new Vec3(0, 0, angle + 90) : null,fit);
         });
     }
 }

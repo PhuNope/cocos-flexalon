@@ -59,13 +59,15 @@ export class FlexalonCurveLayout extends LayoutBase {
         const span=table[lo]-table[lo-1];return ((lo-1)+(span>0?(target-table[lo-1])/span:0))/100;
     }
     public arrangeChildren(size:Vec3):void{
-        const items=this.items(this.contentSize(size)),n=items.length;const table=this.uniformDistance?this.arcValues():[];
+        const content=this.contentSize(size),items=this.items(content),n=items.length;
+        const table=this.uniformDistance?this.arcValues():[];
         items.forEach((i,k)=>{
             const fraction=n===1?.5:k/(n-1);
             const t=this.uniformDistance?this.progress(fraction,table):fraction;
             const pos=FlexalonMath.Bezier(this.point0,this.point1,this.point2,this.point3,t);
             const tangent=FlexalonMath.BezierTangent(this.point0,this.point1,this.point2,this.point3,t);
-            this.place(i,pos,size,k,this.orientAlongCurve?new Vec3(0,0,Math.atan2(tangent.y,tangent.x)*180/Math.PI):null);
+            const fit=this.shouldFit(i)?this.fitItem(i,this.spatialFitBounds(i,content),content):undefined;
+            this.place(i,pos,size,k,this.orientAlongCurve?new Vec3(0,0,Math.atan2(tangent.y,tangent.x)*180/Math.PI):null,fit);
         });
     }
 }

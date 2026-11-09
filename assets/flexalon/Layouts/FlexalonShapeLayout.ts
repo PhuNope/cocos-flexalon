@@ -43,7 +43,7 @@ export class FlexalonShapeLayout extends LayoutBase {
             Math.max(1,outer.z)+this.paddingFront+this.paddingBack);
     }
     public arrangeChildren(size:Vec3):void{
-        const items=this.items(this.contentSize(size)),n=items.length;
+        const content=this.contentSize(size),items=this.items(content),n=items.length;
         items.forEach((i,k)=>{
             const t=k/n;let x=0,y=0;
             if(this.shape===ShapeType.Ellipse){const a=this.startAngle*Math.PI/180+t*Math.PI*2;x=this.width/2*Math.cos(a);y=this.height/2*Math.sin(a);}
@@ -60,7 +60,8 @@ export class FlexalonShapeLayout extends LayoutBase {
                 else if(v<2*w+h){x=w/2-(v-w-h);y=h/2;}
                 else{x=-w/2;y=h/2-(v-2*w-h);}
             }
-            this.place(i,new Vec3(x,y,0),size,k);
+            const fit=this.shouldFit(i)?this.fitItem(i,this.spatialFitBounds(i,content),content):undefined;
+            this.place(i,new Vec3(x,y,0),size,k,null,fit);
         });
     }
 }

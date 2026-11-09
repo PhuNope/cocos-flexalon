@@ -3,7 +3,7 @@ import { FlexalonComponent } from './FlexalonComponent';
 import { FlexalonObject } from './FlexalonObject';
 import { FlexalonResult } from './FlexalonResult';
 import { Layout } from './FlexalonLayout';
-import { Align, SizeType, align01, axisValue, setAxis } from './FlexalonTypes';
+import { Align, SizeType, FitMode, align01, axisValue, setAxis } from './FlexalonTypes';
 import { defaultAdapter } from './FlexalonAdapter';
 import { FlexalonMath } from './FlexalonMath';
 import { FlexalonModifier } from './FlexalonModifier';
@@ -13,6 +13,21 @@ import { FlexalonInteractable } from '../Interaction/FlexalonInteractable';
 import { syncGizmosSelection, flexalonGizmos, rect, drawLocalLineList, quadInParent, boundsColor, paddingColor, marginColor } from './FlexalonGizmos';
 const { ccclass, property, executeInEditMode, requireComponent } = _decorator;
 export type Item = { node: Node; object: FlexalonObject | null; size: Vec3; outer: Vec3; marginLeft: number; marginRight: number; marginTop: number; marginBottom: number; marginBack: number; marginFront: number; };
+export type FitResult = { scale: number; visualSize: Vec3 };
+/** Min/Max constrain the VISUAL size after original node scale and multiplier.
+ * Min wins conflicts: a child can intentionally overflow a too-small slot.
+ */
+export function calculateFitScale(natural: Vec3, baseline: Vec3, width: number, height: number, min: Vec3, max: Vec3): number {
+    const visualX=Math.max(0,natural.x)*Math.abs(baseline.x),visualY=Math.max(0,natural.y)*Math.abs(baseline.y);
+    const visualZ=Math.max(0,natural.z)*Math.abs(baseline.z),eps=1e-8;
+    const desired=Math.min(visualX>eps?Math.max(0,width)/visualX:Infinity,
+        visualY>eps?Math.max(0,height)/visualY:Infinity);
+    const lower=Math.max(0,visualX>eps?Math.max(0,min.x)/visualX:0,
+        visualY>eps?Math.max(0,min.y)/visualY:0,visualZ>eps?Math.max(0,min.z)/visualZ:0);
+    const upper=Math.min(visualX>eps&&max.x>0?max.x/visualX:Infinity,
+        visualY>eps&&max.y>0?max.y/visualY:Infinity,visualZ>eps&&max.z>0?max.z/visualZ:Infinity);
+    return Math.max(lower,Math.min(upper,Number.isFinite(desired)?desired:1));
+}
 
 /** Base layout in editor and at runtime. Existing Cocos UITransform widths/heights are local units. */
 @ccclass('Flexalon.LayoutBase')
@@ -23,6 +38,13 @@ export class LayoutBase extends FlexalonComponent implements Layout {
     public showGizmos = true;
     @property({tooltip: 'Vẽ Content Bounds và Margin của từng child.', visible: true})
     public showChildBounds = false;
+    @property({tooltip: 'Scale To Fit các child thuộc layout này; child có Fit Mode riêng được ưu tiên. Mặc định TẮT để giữ Scene cũ.', visible:true,displayName:'Fit Children'})
+    public fitChildren = false;
+    @property({tooltip: 'Khoảng đệm mỗi phía quanh item khi Fit (local units).', visible:true,displayName:'Fit Padding'})
+    public fitPadding = 0;
+    @property({tooltip: 'Giới hạn vùng Fit tối đa cho mỗi item (X/Y). Giá trị 0 = tự xác định theo Layout; Circle/Curve/Shape/Random có thể dùng Max Size của child hoặc nhập vùng Fit này.', visible:true,displayName:'Fit Item Size'})
+    public fitItemSize: Vec3 = new Vec3();
+
 
     /** Cocos-Gizmos discovers this hook; Flexalon does not register its own renderer. */
     public onDrawGizmos():void { syncGizmosSelection(this.node); }
@@ -207,6 +229,69 @@ export class LayoutBase extends FlexalonComponent implements Layout {
         const y=ui ? (0.5-ui.anchorY)*size.y : 0;
         return new Vec3(x+(this.paddingLeft-this.paddingRight)*0.5, y+(this.paddingBottom-this.paddingTop)*0.5, (this.paddingBack-this.paddingFront)*0.5);
     }
+    /** Child overrides take precedence over this layout's Fit Children toggle. */
+    protected shouldFit(item: Item): boolean {
+        const mode = item.object?.fitMode ?? FitMode.Inherit;
+        return mode===FitMode.ScaleToFit || (mode===FitMode.Inherit && this.fitChildren);
+    }
+    /** Optional per-layout cap, 0 = use the supplied available bounds. */
+    protected fitBounds(available: Vec3): Vec3 {
+        return new Vec3(this.fitItemSize.x>0?Math.min(available.x,this.fitItemSize.x):available.x,
+            this.fitItemSize.y>0?Math.min(available.y,this.fitItemSize.y):available.y,available.z);
+    }
+    /** Layouts that place centres on paths need an explicit per-item target.
+     * Without Fit Item Size or child MaxSize, preserve natural visual size.
+     */
+    protected spatialFitBounds(item: Item, content: Vec3): Vec3 {
+        const natural=this.fitNaturalSize(item,content);
+        const base=this.baseScale(item.node),mult=item.object?.scaleMultiplier;
+        const vx=natural.x*Math.abs(base.x*(mult?.x??1)),vy=natural.y*Math.abs(base.y*(mult?.y??1));
+        const mx=item.object?.maxSize.x??0,my=item.object?.maxSize.y??0;
+        return this.fitBounds(new Vec3(
+            Math.min(content.x,this.fitItemSize.x>0?this.fitItemSize.x:mx>0?mx:vx),
+            Math.min(content.y,this.fitItemSize.y>0?this.fitItemSize.y:my>0?my:vy),content.z));
+    }
+    /** Component/Fill use source content size, not a previously assigned Fill cell size. */
+    protected fitNaturalSize(item: Item, inner: Vec3): Vec3 {
+        const obj=item.object;
+        const natural=defaultAdapter.measure(item.node);
+        if(obj){
+            const sx=obj.GetFitSourceSize(0),sy=obj.GetFitSourceSize(1);
+            if(sx>0)natural.x=sx;
+            if(sy>0)natural.y=sy;
+        }
+        const nested=item.node.getComponent(LayoutBase);
+        if(nested && nested!==this && nested.enabledInHierarchy && obj &&
+            (obj.widthType===SizeType.Layout||obj.heightType===SizeType.Layout)){
+            const intrinsic=nested.measureIntrinsic(inner);
+            if(obj.widthType===SizeType.Layout)natural.x=intrinsic.x;
+            if(obj.heightType===SizeType.Layout)natural.y=intrinsic.y;
+        }
+        if(obj?.widthType===SizeType.Fixed)natural.x=obj.fixed(0);
+        if(obj?.heightType===SizeType.Fixed)natural.y=obj.fixed(1);
+        return natural;
+    }
+    /** Apply a uniform absolute fit factor. Item outer becomes visual bounds for alignment. */
+    protected fitItem(item: Item, bounds: Vec3, inner: Vec3, padding=this.fitPadding): FitResult {
+        const natural=this.fitNaturalSize(item,inner);
+        const ui=item.node.getComponent(UITransform);
+        if(ui && (Math.abs(ui.width-natural.x)>0.0001||Math.abs(ui.height-natural.y)>0.0001))
+            ui.setContentSize(natural.x,natural.y);
+        const base=this.baseScale(item.node),mult=item.object?.scaleMultiplier;
+        const effective=new Vec3(base.x*(mult?.x??1),base.y*(mult?.y??1),base.z*(mult?.z??1));
+        const pad=Math.max(0,padding);
+        const availableWidth=Math.max(0,bounds.x-item.marginLeft-item.marginRight-2*pad);
+        const availableHeight=Math.max(0,bounds.y-item.marginTop-item.marginBottom-2*pad);
+        const factor=calculateFitScale(natural,effective,availableWidth,availableHeight,
+            item.object?.minSize??new Vec3(),item.object?.maxSize??new Vec3());
+        const visual=new Vec3(natural.x*Math.abs(effective.x)*factor,
+            natural.y*Math.abs(effective.y)*factor,natural.z*Math.abs(effective.z)*factor);
+        item.size.set(natural);
+        item.outer.set(visual.x+item.marginLeft+item.marginRight+2*pad,
+            visual.y+item.marginTop+item.marginBottom+2*pad,
+            visual.z+item.marginFront+item.marginBack);
+        return {scale:factor,visualSize:visual};
+    }
     protected items(available: Vec3, measuringIntrinsic = false): Item[] {
         return this.node.children.filter(n=>(n.hideFlags & CCObject.Flags.DontSave)===0).filter(n=>this.includeInactive || n.active).filter(n=>!n.getComponent(FlexalonObject)?.skipLayout && !n.getComponent(FlexalonInteractable)?.IsDragging &&
             !(n.getComponent(FlexalonCurveAnimator)?.enabledInHierarchy && n.getComponent(FlexalonCurveAnimator)?.ignoreParentLayout)).map(n=>this.measureItem(n,available,measuringIntrinsic));
@@ -240,7 +325,7 @@ export class LayoutBase extends FlexalonComponent implements Layout {
     }
     /** Coordinates reference the CENTER of the item's outer/margin box. */
     protected place(item: Item, outerCenter: Vec3, containerSize: Vec3, index = 0, rotation: Vec3 | null = null,
-        fit?: { scale: number; visualSize: Vec3 }): void {
+        fit?: FitResult): void {
         const parentCenter=this.contentCenter(containerSize);
         let pos=outerCenter.clone();
         pos.x+=(item.marginLeft-item.marginRight)/2 + parentCenter.x;

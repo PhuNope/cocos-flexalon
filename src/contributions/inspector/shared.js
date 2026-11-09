@@ -7,6 +7,7 @@ const layoutCommon = [
     { title: 'Layout Settings', icon: '⚙', expanded: false, fields: ['autoUpdate','includeInactive'] },
     { title: 'Scene Gizmos', icon: '◈', expanded: false, fields: ['showGizmos','showChildBounds'] },
     { title: 'Padding', icon: '▣', expanded: false, fields: ['paddingLeft','paddingRight','paddingTop','paddingBottom','paddingFront','paddingBack'] },
+    { title: 'Scale To Fit', icon: '⤢', expanded: true, fields: ['fitChildren','fitPadding','fitItemSize'] },
 ];
 
 const configs = {
@@ -18,7 +19,7 @@ const configs = {
         {key:'size',when:'anyFixed'}, {key:'fill',when:'anyFill'},
       ]},
       { title: 'Min / Max', icon: '⇳', expanded: false, fields: ['minSize','maxSize'] },
-      { title: 'Grid Scale To Fit', icon: '⤢', expanded: true, fields: ['fitMode','fitSourceSize'] },
+      { title: 'Scale To Fit', icon: '⤢', expanded: true, fields: ['fitMode','fitSourceSize'] },
       { title: 'Margin', icon: '□', expanded: false, fields: ['marginLeft','marginRight','marginTop','marginBottom','marginFront','marginBack'] },
       { title: 'Transform', icon: '✧', expanded: false, fields: ['offset','rotationOffset','scaleMultiplier'] },
       { title: 'Fill Parent Fallback', icon: '⇱', expanded: true, when: 'anyFill', fields: ['fillParentFallback'] },
@@ -36,7 +37,7 @@ const configs = {
       { title: 'Alignment', icon: '≡', fields: ['mainAlign','crossAlign'] },
       ...layoutCommon,
     ],
-    note: 'Max Items Per Line = 0 không giới hạn. Nếu vùng chứa quá nhỏ, Wrap vẫn có thể xuống dòng sớm hơn.'
+    note: 'Fit Children chia vùng khả dụng theo item/dòng; Max Items Per Line xác định số slot khi Wrap. Min Size có thể gây tràn khi thiếu chỗ.'
   },
   FlexalonGridLayout: {
     title: 'Grid Layout', subtitle: 'Lưới chữ nhật hoặc hexagon', kind: 'layout',
@@ -44,11 +45,11 @@ const configs = {
       { title: 'Grid Setup', icon: '▦', fields: ['cellType','cellSizing','columns','rows'] },
       { title: 'Placement', icon: '⊞', fields: ['startCorner','startAxis','horizontalAlign','verticalAlign'] },
       { title: 'Spacing', icon: '↔', fields: ['columnGap','rowGap'] },
-      { title: 'Scale To Fit', icon: '⤢', expanded: true, fields: ['fitChildrenToCell','cellPadding'] },
+      { title: 'Grid Cell Fit', icon: '⤢', expanded: true, fields: ['fitChildrenToCell','cellPadding'] },
       { title: 'Grid Gizmos', icon: '▦', expanded: false, fields: ['showGrid','showCellBounds','showOccupiedCells','showGridGaps','showCellIndex'] },
       ...layoutCommon,
     ],
-    note: 'FitChildren tính bề rộng theo cột và chiều cao theo hàng, trừ khi có item bật Scale To Fit thì Grid dùng ô Uniform để tránh vòng lặp kích thước. Scale To Fit giữ nguyên UITransform; Min/Max của child tính trên kích thước sau scale. Min Size có thể khiến object tràn ô.'
+    note: 'Fit Children hoặc Fit Children To Cell đều kích hoạt Scale To Fit. Cell Padding chỉ áp dụng cho Grid. Fit Item Size giới hạn vùng ô; Min/Max của child tính trên kích thước sau scale. Min Size có thể khiến item tràn ô.'
   },
   FlexalonCircleLayout: {
     title: 'Circle Layout', subtitle: 'Circle, ellipse, spiral, concentric rings', kind: 'layout',

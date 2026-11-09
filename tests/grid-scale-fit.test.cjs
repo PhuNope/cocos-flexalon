@@ -20,7 +20,7 @@ const decorators={ccclass:()=>C=>C,property:()=>()=>{},menu:()=>C=>C,executeInEd
 const cc={Vec3,UITransform,Color:class {constructor(){}},Enum:x=>x,_decorator:decorators};
 class LayoutBase {
  constructor(){this.paddingLeft=0;this.paddingRight=0;this.paddingTop=0;this.paddingBottom=0;
-   this._original=new WeakMap();this.placed=[];}
+   this._original=new WeakMap();this.placed=[];this.fitChildren=false;this.fitPadding=0;this.fitItemSize=new Vec3();}
  contentSize(v){return v.clone();}
  items(inner,intrinsic=false){
    return this.testItems.map(source=>{
@@ -34,6 +34,31 @@ class LayoutBase {
    });
  }
  baseScale(node){if(!this._original.has(node))this._original.set(node,node.scale.clone());return this._original.get(node);}
+ fitBounds(bounds){return bounds;}
+ fitNaturalSize(item){
+   const o=item.object, natural=new Vec3(item.node.ui.width,item.node.ui.height,1);
+   const sourceX=o?.GetFitSourceSize(0),sourceY=o?.GetFitSourceSize(1);
+   if(sourceX>0)natural.x=sourceX;
+   if(sourceY>0)natural.y=sourceY;
+   if(o?.widthType===SizeType.Fixed)natural.x=o.fixed(0);
+   if(o?.heightType===SizeType.Fixed)natural.y=o.fixed(1);
+   return natural;
+ }
+ fitItem(item,bounds,inner,padding=0){
+   const natural=this.fitNaturalSize(item,inner);
+   item.node.ui.setContentSize(natural.x,natural.y);
+   const base=this.baseScale(item.node),mult=item.object?.scaleMultiplier;
+   const effective=new Vec3(base.x*(mult?.x??1),base.y*(mult?.y??1),base.z*(mult?.z??1));
+   const factor=calculateGridFitScale(natural,effective,
+      Math.max(0,bounds.x-item.marginLeft-item.marginRight-padding*2),
+      Math.max(0,bounds.y-item.marginTop-item.marginBottom-padding*2),
+      item.object?.minSize??new Vec3(),item.object?.maxSize??new Vec3());
+   const visual=new Vec3(natural.x*Math.abs(effective.x)*factor,natural.y*Math.abs(effective.y)*factor,1);
+   item.size.set(natural);
+   item.outer.set(visual.x+item.marginLeft+item.marginRight+padding*2,
+                  visual.y+item.marginTop+item.marginBottom+padding*2,1);
+   return {scale:factor,visualSize:visual};
+ }
  setItemSize(item,size){item.size.set(size);item.outer.set(size.x+item.marginLeft+item.marginRight,size.y+item.marginTop+item.marginBottom,1);}
  place(item,pos,container,index,rotation,fit){
    const baseline=this.baseScale(item.node);

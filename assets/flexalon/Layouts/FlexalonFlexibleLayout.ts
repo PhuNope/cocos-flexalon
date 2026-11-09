@@ -1,6 +1,6 @@
 import { FlexalonObject } from '../Core/FlexalonObject';
 import { _decorator, Enum, Vec3, UITransform } from 'cc';
-import { LayoutBase, Item } from '../Core/FlexalonLayoutBase';
+import { LayoutBase, Item, FitResult } from '../Core/FlexalonLayoutBase';
 import { Align, Direction, GapOptions, SizeType, axisIndex, axisSign, axisValue, setAxis, align01 } from '../Core/FlexalonTypes';
 const {ccclass, property, menu, executeInEditMode,requireComponent}=_decorator;
 /** Linear / multi-line 2D flex with fill-weight distribution. Z direction works without wrapping. */
@@ -87,9 +87,44 @@ export class FlexalonFlexibleLayout extends LayoutBase {
         const crossSign=this.wrap && wrapAxis!==main ? axisSign(this.wrapDirection) : 1;
         const depth=[0,1,2].find(a=>a!==main && a!==cross)!;
         const items=this.items(content);
-        // Main-axis fill children consume only their minimum size during line formation.
+        const fitted=new Map<Item,FitResult>();
+        if(items.some(item=>this.shouldFit(item))){
+            // Allocate a stable per-item slot BEFORE deciding line breaks.
+            // A Fit child must not reserve its (potentially huge) Fill dimensions.
+            const mayWrap=this.wrap&&cross!==main;
+            const mainExtent=Math.max(0,axisValue(content,main));
+            let itemsPerLine=items.length;
+            if(mayWrap){
+                const configured=Math.floor(this.maxItemsPerLine);
+                if(configured>0)itemsPerLine=Math.min(items.length,configured);
+                else{
+                    const naturalExtent=items.reduce((sum,item)=>{
+                        if(!this.shouldFit(item))return sum+axisValue(item.outer,main);
+                        const natural=this.fitNaturalSize(item,content),scale=this.baseScale(item.node);
+                        const mult=item.object?.scaleMultiplier;
+                        return sum+(main===0?natural.x*Math.abs(scale.x*(mult?.x??1)):
+                            main===1?natural.y*Math.abs(scale.y*(mult?.y??1)):
+                            natural.z*Math.abs(scale.z*(mult?.z??1)));
+                    },0)/Math.max(1,items.length);
+                    itemsPerLine=Math.min(items.length,Math.max(1,Math.floor(
+                        (mainExtent+this.gap)/Math.max(0.001,naturalExtent+this.gap))));
+                }
+            }
+            const lines=Math.max(1,Math.ceil(items.length/Math.max(1,itemsPerLine)));
+            const availableMain=Math.max(0,(mainExtent-Math.max(0,itemsPerLine-1)*this.gap)/Math.max(1,itemsPerLine));
+            const availableCross=mayWrap
+                ?Math.max(0,(axisValue(content,cross)-Math.max(0,lines-1)*this.wrapGap)/lines)
+                :Math.max(0,axisValue(content,cross));
+            const maxSlot=content.clone();
+            setAxis(maxSlot,main,availableMain);
+            setAxis(maxSlot,cross,availableCross);
+            for(const item of items)if(this.shouldFit(item)){
+                fitted.set(item,this.fitItem(item,this.fitBounds(maxSlot),content));
+            }
+        }
+        // Main-axis Fill consumes free space only when NOT overridden by Scale To Fit.
         for(const i of items){
-            if(i.object?.typeForAxis(main)===SizeType.Fill){
+            if(!fitted.has(i) && i.object?.typeForAxis(main)===SizeType.Fill){
                 const next=i.size.clone();setAxis(next,main,i.object.clampSize(main,0));this.setItemSize(i,next);
             }
         }
@@ -103,10 +138,10 @@ export class FlexalonFlexibleLayout extends LayoutBase {
         lines.forEach((group,row)=>{
             const available=axisValue(content,main);
             const fixedGap=this.gap*Math.max(0,group.length-1);
-            const fixed=group.reduce((s,i)=>s+(i.object?.typeForAxis(main)===SizeType.Fill?0:axisValue(i.outer,main)),0);
-            const totalWeight=group.reduce((s,i)=>s+(i.object?.typeForAxis(main)===SizeType.Fill ? i.object.fraction(main):0),0);
+            const fixed=group.reduce((s,i)=>s+(!fitted.has(i)&&i.object?.typeForAxis(main)===SizeType.Fill?0:axisValue(i.outer,main)),0);
+            const totalWeight=group.reduce((s,i)=>s+(!fitted.has(i)&&i.object?.typeForAxis(main)===SizeType.Fill ? i.object.fraction(main):0),0);
             const spaceForFill=Math.max(0,available-fixed-fixedGap);
-            if(totalWeight>0) for(const i of group){if(i.object?.typeForAxis(main)===SizeType.Fill){const newSize=i.size.clone();setAxis(newSize,main,Math.max(0,spaceForFill*i.object.fraction(main)/totalWeight - (axisValue(i.outer,main)-axisValue(i.size,main))));this.setItemSize(i,newSize);}}
+            if(totalWeight>0) for(const i of group){if(!fitted.has(i)&&i.object?.typeForAxis(main)===SizeType.Fill){const newSize=i.size.clone();setAxis(newSize,main,Math.max(0,spaceForFill*i.object.fraction(main)/totalWeight - (axisValue(i.outer,main)-axisValue(i.size,main))));this.setItemSize(i,newSize);}}
             const occupied=group.reduce((s,i)=>s+axisValue(i.outer,main),0);
             const remainder=Math.max(0,available-occupied);
             let gap=this.gap, leading=0;
@@ -121,7 +156,7 @@ export class FlexalonFlexibleLayout extends LayoutBase {
                 setAxis(pos,main,mainSign*(cursor+mainOuter/2));
                 setAxis(pos,cross,crossSign*(crossCursor + (lineCross[row]-crossOuter)*align01(this.crossAlign)+crossOuter/2));
                 setAxis(pos,depth,this.aligned(axisValue(content,depth),axisValue(i.outer,depth),Align.Center));
-                this.place(i,pos,size,itemIndex++);
+                this.place(i,pos,size,itemIndex++,null,fitted.get(i));
                 cursor+=mainOuter+gap;
             });
             crossCursor+=lineCross[row]+this.wrapGap;
