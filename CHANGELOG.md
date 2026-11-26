@@ -2,6 +2,22 @@
 
 Những thay đổi đáng chú ý của các bản phát hành ổn định.
 
+## v0.5.12 — 2026-11-26
+
+**Hỗ trợ:** Cocos Creator >= 3.8.2  
+**Nâng cấp từ:** v0.5.11
+
+### Sửa build TypeScript và tự động build khi cài source
+
+- Sửa TS2451 trong Guide Panel: cô lập module và không tự nạp `@types/node` của project cha; giữ hợp đồng CommonJS của Cocos Editor.
+- Tự build `dist/` qua npm postinstall khi cài dependency dev bằng `npm ci` hoặc `npm install`. Source Git không chứa `dist/` hay `node_modules/`.
+- Hỗ trợ cài đặt từ Git submodule; bổ sung hướng dẫn postinstall cho project Cocos cha. Git clone/submodule update thuần túy không chạy npm.
+- ZIP release vẫn chứa Editor output đã build, không yêu cầu npm install.
+- Dev QA đã pass trên Linux và Windows, bao gồm kiểm tra đường dẫn extension lồng trong project, regression test cho ancestor types và xác minh ZIP.
+- Xem [Release Notes](docs/releases/v0.5.12.md).
+
+---
+
 ## v0.5.11 — 2026-11-26
 
 **Hỗ trợ:** Cocos Creator >= 3.8.2  

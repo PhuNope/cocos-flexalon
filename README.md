@@ -1,4 +1,4 @@
-# Flexalon Unified Extension v0.5.11 — Cocos Creator >= 3.8.2
+# Flexalon Unified Extension v0.5.12 — Cocos Creator >= 3.8.2
 
 **One extension, everything included.** The package carries all 43 runtime TypeScript files, 18 Custom Inspectors, the Guide Panel, and an offline HTML guide.
 
@@ -83,9 +83,9 @@ npm run release
 npm run release:check
 ```
 
-Produces `release/flexalon-tools-v0.5.11.zip` with one top-level `flexalon-tools/` folder. **Minimal installer allowlist**: only runtime `.ts/.meta`, compiled JS/HTML/CSS needed by Editor/Inspector/Guide, `package.json`, panel icon, `README_VI.md`, and optional legacy migrator plus its migration instructions. Source `src/`, TypeScript build dependencies, lockfile, tsconfig, workflow, tests, offline HTML and screenshot previews are excluded. The illustrated Guide Panel stays fully functional. Run `npm run release:files` to inspect every included path; edit `scripts/release-manifest.cjs` to change the allowlist. `npm run release` rebuilds and checks the package, creates ZIP, and verifies its CRC/decompression against disk files. `release:check` can be run again separately.
+Produces `release/flexalon-tools-v0.5.12.zip` with one top-level `flexalon-tools/` folder. **Minimal installer allowlist**: only runtime `.ts/.meta`, compiled JS/HTML/CSS needed by Editor/Inspector/Guide, `package.json`, panel icon, `README_VI.md`, and optional legacy migrator plus its migration instructions. Source `src/`, TypeScript build dependencies, lockfile, tsconfig, workflow, tests, offline HTML and screenshot previews are excluded. The illustrated Guide Panel stays fully functional. Run `npm run release:files` to inspect every included path; edit `scripts/release-manifest.cjs` to change the allowlist. `npm run release` rebuilds and checks the package, creates ZIP, and verifies its CRC/decompression against disk files. `release:check` can be run again separately.
 
-Pushing the matching tag (`git tag v0.5.11 && git push origin v0.5.11`) triggers the workflow. It runs `npm ci`, `npm run release`, verifies the ZIP, and creates/updates the corresponding GitHub Release using `GITHUB_TOKEN`. Use GitHub Actions manual dispatch to publish an **existing** tag. Tag version must equal `v` + package version.
+Pushing the matching tag (`git tag v0.5.12 && git push origin v0.5.12`) triggers the workflow. It runs `npm ci`, `npm run release`, verifies the ZIP, and creates/updates the corresponding GitHub Release using `GITHUB_TOKEN`. Use GitHub Actions manual dispatch to publish an **existing** tag. Tag version must equal `v` + package version.
 
 
 **Note:** Pushing a new package version to `main` runs the release workflow, which verifies the ZIP, creates the matching tag if needed and publishes the GitHub Release. Pushes to `dev` produce QA artifacts only. Matching tag pushes and manual dispatch with an existing tag are also supported. Generated `dist/` is ignored by Git and built from `src/` by npm postinstall or the packaging workflow.
