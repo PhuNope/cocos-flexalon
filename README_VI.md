@@ -22,6 +22,18 @@ Ví dụ import từ mã dự án:
 import { FlexalonGridLayout } from 'db://flexalon-tools/flexalon/Layouts/FlexalonGridLayout';
 ```
 
+## Cài bằng Git clone (không cần build thủ công)
+
+Tại thư mục project Cocos Creator:
+
+```bash
+git clone https://github.com/PhuNope/cocos-flexalon.git extensions/flexalon-tools
+```
+
+Sau đó bật/reload extension trong Creator. Git không tự chạy lệnh build khi clone thông thường; repo có sẵn `dist/` được sinh từ `src/`, nên clone xong dùng ngay, không cần npm install.
+
+Khi phát triển source, vào thư mục `extensions/flexalon-tools` và chạy `npm ci` hoặc `npm install`: npm tự chạy postinstall để build khi compiler dev đã được cài. Muốn build lại thủ công dùng `npm run build`. Commit cả `dist/` đã sinh khi sửa source Editor; Dev QA kiểm tra file build không bị lệch. TypeScript của extension không tự nạp @types/node từ project cha. Bản ZIP release đã build sẵn, không cần npm install.
+
 ## Scale To Fit: một tùy chọn dùng chung (v0.5.10)
 
 Các loại Flexalon Layout sử dụng chung nhóm **Scale To Fit** trong Inspector:

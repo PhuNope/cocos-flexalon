@@ -111,7 +111,8 @@
     "release": "npm run build && npm run verify && node scripts/package-release.cjs && node scripts/verify-release.cjs",
     "release:check": "node scripts/verify-release.cjs",
     "release:files": "node scripts/release-manifest.cjs",
-    "test:updater": "node tests/updater.test.cjs"
+    "test:updater": "node tests/updater.test.cjs",
+    "postinstall": "node -e \"const fs=require('node:fs'); if(fs.existsSync('tsconfig.json') && fs.existsSync('src/panels/guide.ts') && fs.existsSync('node_modules/typescript/bin/tsc')) require('node:child_process').execSync('npm run build',{stdio:'inherit'})\""
   },
   "panels": {
     "guide": {

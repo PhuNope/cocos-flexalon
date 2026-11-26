@@ -33,13 +33,23 @@ The script **does not delete any legacy source**: it backs up the old folder out
 
 - Fresh installation needs **no migration** and no command line.
 
+## Install directly from Git
+
+Clone from your Cocos project root (no build or npm install is required just to use the checked-in Editor output):
+
+```bash
+git clone https://github.com/PhuNope/cocos-flexalon.git extensions/flexalon-tools
+```
+
+Enable the extension in Creator as above. Git does not execute build commands on a normal clone: the committed `dist/` is generated from `src/` so all Editor entry points and Guide/Inspector resources are already available. For development, enter the extension directory and run `npm ci` (or `npm install`) to install the pinned compiler and automatically rebuild via postinstall. `npm run build` remains available for manual rebuilds. Commit the regenerated `dist/` alongside source changes; Dev QA checks for drift. The compiler is isolated from ancestor project @types. Release ZIPs already include the build and do not need npm install.
+
 ## Maintainers
 
 - `assets/flexalon`: runtime TypeScript (`.meta` UUIDs pinned for updates).
 - `src`, `dist`: extension UI and compiled JS. Only `src` is compiled by the extension's TypeScript config; **do not compile `assets/flexalon` using Node/extension `tsc`**. Creator compiles it as engine assets.
 - `src/contributions/inspector`: 18 Custom Inspector panels; `src/panels/guide`: 20 illustrated Vietnamese lessons.
 - `docs/Flexalon_Guide_VI.html`: offline HTML.
-- `npm run build`: rebuild inspector/editor JS (requires global/project `tsc`).
+- `npm run build`: rebuild inspector/editor JS (run `npm ci` first to use the pinned TypeScript version).
 - `npm run verify`: validate manifest, runtime and `.meta` mappings offline.
 
 Testing: extension build and mocked runtime/inspector tests only, not live Cocos Creator 3.8.2/3.8.8 Editor or device builds. Verify read-only DB mount, scene serialization, preview and build in your actual project.
@@ -59,7 +69,7 @@ Produces `release/flexalon-tools-v0.5.11.zip` with one top-level `flexalon-tools
 Pushing the matching tag (`git tag v0.5.11 && git push origin v0.5.11`) triggers the workflow. It runs `npm ci`, `npm run release`, verifies the ZIP, and creates/updates the corresponding GitHub Release using `GITHUB_TOKEN`. Use GitHub Actions manual dispatch to publish an **existing** tag. Tag version must equal `v` + package version.
 
 
-**Note:** Pushing a new package version to `main` runs the release workflow, which verifies the ZIP, creates the matching tag if needed and publishes the GitHub Release. Pushes to `dev` produce QA artifacts only. Matching tag pushes and manual dispatch with an existing tag are also supported. Repo source can omit `dist/` (ignored); the workflow builds it from `src/` before packaging.
+**Note:** Pushing a new package version to `main` runs the release workflow, which verifies the ZIP, creates the matching tag if needed and publishes the GitHub Release. Pushes to `dev` produce QA artifacts only. Matching tag pushes and manual dispatch with an existing tag are also supported. The repository includes generated `dist/` for clone-ready use; the workflow still rebuilds it from `src/` before packaging.
 
 ## Cocos-Gizmos v3 — Scene visualization
 

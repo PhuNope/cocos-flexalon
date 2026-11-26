@@ -57,6 +57,7 @@ console.log('PASS: 1 extension; 43 runtime scripts; '+metas.length+' metadata fi
 
 require('./verify-sliders.cjs');
 
+require('../tests/editor-build.test.cjs');
 require('../tests/grid-gizmos.test.cjs');
 require('../tests/gizmos-v3.test.cjs');
 

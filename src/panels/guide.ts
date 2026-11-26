@@ -1,4 +1,5 @@
 // Cocos Creator >= 3.8.2 extension panel. Offline resources copied to dist/panels/guide.
+export {};
 declare const Editor: any;
 declare const module: any;
 declare const require: (id: string) => any;
