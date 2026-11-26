@@ -63,10 +63,10 @@ Pushing the matching tag (`git tag v0.5.2 && git push origin v0.5.2`) triggers t
 
 ## Development branch — Cocos-Gizmos Scene visualization
 
-Install [PhuNope/Cocos-Gizmos](https://github.com/PhuNope/Cocos-Gizmos) v2.0.0 separately (Cocos Creator >=3.8.2).
+Install [PhuNope/Cocos-Gizmos](https://github.com/PhuNope/Cocos-Gizmos) v3.0.3 or a newer v3 build separately (Cocos Creator >=3.8.2).
 Flexalon uses only structural TypeScript types and `globalThis.Gizmos2D` at runtime.
 It does NOT import, bundle, register or redeclare Gizmos, so other extensions reuse the same Gizmos runtime.
-Without Cocos-Gizmos enabled, Flexalon keeps working without visuals.
+Without Cocos-Gizmos enabled, Flexalon keeps working without visuals. The adapter is editor-only (not Preview/game), uses the v3 frame lifecycle and clamps grid labels to 11–22 Scene screen pixels.
 
 Select a Node and enable **Show Gizmos** (optionally **Show Child Bounds**). Cyan: bounds;
 green: padding; yellow: margin/drop zone; pink: circle/curve/shape guides. Circle

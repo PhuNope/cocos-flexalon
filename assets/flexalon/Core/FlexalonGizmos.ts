@@ -1,7 +1,8 @@
-/** Adapter for PhuNope/Cocos-Gizmos v2. Types only: no runtime import or global declaration.
+/** Optional adapter for PhuNope/Cocos-Gizmos v3 (3.0.3+). No SDK import or global declaration.
  * The Cocos-Gizmos extension owns the sole Gizmos2D runtime and its global .d.ts bridge.
  */
-import { Canvas, CCObject, Color, Node, UITransform, Vec3 } from 'cc';
+import { Canvas, CCObject, Color, Node, UITransform, Vec2, Vec3 } from 'cc';
+import { EDITOR_NOT_IN_PREVIEW } from 'cc/env';
 import type { IVec2Like } from 'cc';
 
 export interface Gizmos2DShape {
@@ -12,6 +13,21 @@ export interface Gizmos2DShape {
   drawCircle(node: Node, center: IVec2Like, radius: number): void;
   drawLabel?(node: Node, id: string, text: string, position: IVec2Like, fontSize?: number): void;
 }
+
+/** The upstream v3 drawLabel accepts a scale and optional screen-pixel bounds.
+ * Keep the SDK shape separate from the Flexalon world-space drawing facade.
+ */
+interface Gizmos2DRuntime {
+  beginColor(node: Node, color: Color): void;
+  endLocalPosition(node: Node): void;
+  drawLineList(node: Node, points: IVec2Like[], close?: boolean): void;
+  drawCircle(node: Node, center: IVec2Like, radius: number): void;
+  drawLabel?(node: Node, id: string, text: string, position: IVec2Like,
+    fontSize?: number, scale?: Vec2, minSize?: number, maxSize?: number): void;
+}
+
+const LABEL_MIN_PIXELS = 11;
+const LABEL_MAX_PIXELS = 22;
 
 /**
  * Cocos-Gizmos uses getComponentInChildren() when resolving its renderer.
@@ -24,29 +40,53 @@ const ANCHOR_NAME = '__FLEXALON_GIZMOS_2D__';
 let anchors = new WeakMap<Node, Node>();
 const activeAnchors = new Set<Node>();
 let lastSelectionKey: string | null = null;
-/** Explicitly discard Graphics when Editor selection changes or is cleared. */
+function isFlexalonAnchor(node: Node): boolean {
+  const flags = CCObject.Flags.DontSave | CCObject.Flags.HideInHierarchy;
+  return node.isValid && node.name === ANCHOR_NAME && (node.hideFlags & flags) === flags;
+}
+
+/** Keep selection cleanup for immediate removal of old labels/lines.
+ * v3 owns selection dispatch and flushes pending renderers after callbacks.
+ * Touch an existing anchor (not a new one) so idle geometry/labels can expire
+ * even in restored Scene tabs where GizmosDebugDraw.lateUpdate is absent.
+ */
 export function syncGizmosSelection(node: Node): void {
-  const editor = (globalThis as unknown as {
-    Editor?: { Selection?: { getSelected?: (type: string) => string[] } }
-  }).Editor;
-  const getSelected = editor?.Selection?.getSelected;
-  if (typeof getSelected !== 'function') return;
-  let selection: string[];
-  try { selection = getSelected.call(editor!.Selection, 'node') || []; }
-  catch { return; }
-  const key = [...selection].sort().join('|');
-  if (lastSelectionKey === key) return;
-  lastSelectionKey = key;
+  if (!EDITOR_NOT_IN_PREVIEW || !node?.isValid) return;
+  type SelectionEditor = { Selection?: { getSelected?: (type: string) => unknown } };
+  const globals = globalThis as unknown as {
+    Editor?: SelectionEditor; window?: { Editor?: SelectionEditor };
+  };
+  const selectionApi = (globals.Editor || globals.window?.Editor)?.Selection;
+  let selection: unknown;
+  try { selection = selectionApi?.getSelected?.('node'); }
+  catch { /* Scene-side selection may be temporarily unavailable. */ }
+
   const owner = gizmoOwner(node);
-  const previous = owner.children.find(c => c.name === ANCHOR_NAME);
-  if (previous) activeAnchors.add(previous);
   for (const anchor of activeAnchors) {
-    if (!anchor.isValid) continue;
-    anchor.removeFromParent();
-    anchor.destroy();
+    if (!anchor.isValid || !anchor.parent?.isValid) activeAnchors.delete(anchor);
   }
-  activeAnchors.clear();
-  anchors = new WeakMap<Node, Node>();
+  if (Array.isArray(selection) && selection.every(id => typeof id === 'string')) {
+    const key = JSON.stringify([...new Set(selection)].sort());
+    if (lastSelectionKey !== key) {
+      lastSelectionKey = key;
+      for (const child of owner.children) if (isFlexalonAnchor(child)) activeAnchors.add(child);
+      for (const anchor of activeAnchors) {
+        if (!anchor.isValid) continue;
+        anchor.removeFromParent();
+        anchor.destroy();
+      }
+      activeAnchors.clear();
+      anchors = new WeakMap<Node, Node>();
+      return;
+    }
+  }
+
+  const anchor = anchors.get(owner);
+  // endLocalPosition is a public v3 operation; it queues the renderer for
+  // the SDK's flushEditorFrame without submitting new geometry.
+  if (anchor && isFlexalonAnchor(anchor) && anchor.parent === owner && anchor.children.length) {
+    runtimeGizmos()?.endLocalPosition(anchor);
+  }
 }
 function gizmoOwner(node: Node): Node {
   let owner: Node | null = null;
@@ -60,7 +100,7 @@ function anchorFor(node: Node): Node {
   const owner = gizmoOwner(node);
   let anchor = anchors.get(owner);
   if (anchor?.isValid && anchor.parent === owner) return anchor;
-  anchor = owner.children.find(c => c.name === ANCHOR_NAME && (c.hideFlags & CCObject.Flags.DontSave) !== 0);
+  anchor = owner.children.find(isFlexalonAnchor);
   if (!anchor) {
     anchor = new Node(ANCHOR_NAME);
     anchor.hideFlags |= CCObject.Flags.DontSave | CCObject.Flags.HideInHierarchy;
@@ -71,18 +111,45 @@ function anchorFor(node: Node): Node {
   activeAnchors.add(anchor);
   return anchor;
 }
-function runtimeGizmos(): Gizmos2DShape | undefined {
-  const runtime = (globalThis as unknown as { Gizmos2D?: Gizmos2DShape }).Gizmos2D;
+function runtimeGizmos(): Gizmos2DRuntime | undefined {
+  if (!EDITOR_NOT_IN_PREVIEW) return undefined;
+  const runtime = (globalThis as unknown as { Gizmos2D?: Gizmos2DRuntime }).Gizmos2D;
   return runtime && typeof runtime.beginColor === 'function' &&
-    typeof runtime.drawLineList === 'function' ? runtime : undefined;
+    typeof runtime.endLocalPosition === 'function' &&
+    typeof runtime.drawLineList === 'function' &&
+    typeof runtime.drawCircle === 'function' ? runtime : undefined;
 }
+
+function worldAnchor(runtime: Gizmos2DRuntime, node: Node): Node {
+  const anchor = anchorFor(node);
+  // v3 retains draw state until the SDK flushes the frame. Explicitly
+  // request world-space coordinates before submitting Flexalon commands.
+  runtime.endLocalPosition(anchor);
+  return anchor;
+}
+
 const stableGizmos: Gizmos2DShape = {
-  beginColor(node, color) { runtimeGizmos()?.beginColor(anchorFor(node), color); },
-  beginLocalPosition(_node) { /* always world-space; never mutate shared renderer state */ },
-  endLocalPosition(_node) { /* always world-space */ },
-  drawLineList(node, points, close = false) { runtimeGizmos()?.drawLineList(anchorFor(node), points, close); },
-  drawCircle(node, center, radius) { runtimeGizmos()?.drawCircle(anchorFor(node), center, radius); },
-  drawLabel(node, id, text, position, fontSize) { runtimeGizmos()?.drawLabel?.(anchorFor(node), id, text, position, fontSize); },
+  beginColor(node, color) {
+    const runtime = runtimeGizmos();
+    if (runtime) runtime.beginColor(worldAnchor(runtime, node), color);
+  },
+  beginLocalPosition(_node) { /* facade accepts world-space only */ },
+  endLocalPosition(_node) { /* facade accepts world-space only */ },
+  drawLineList(node, points, close = false) {
+    const runtime = runtimeGizmos();
+    if (runtime) runtime.drawLineList(worldAnchor(runtime, node), points, close);
+  },
+  drawCircle(node, center, radius) {
+    const runtime = runtimeGizmos();
+    if (runtime) runtime.drawCircle(worldAnchor(runtime, node), center, radius);
+  },
+  drawLabel(node, id, text, position, fontSize = 12) {
+    const runtime = runtimeGizmos();
+    if (runtime?.drawLabel) {
+      runtime.drawLabel(worldAnchor(runtime, node), id, text, position,
+        fontSize, Vec2.ONE, LABEL_MIN_PIXELS, LABEL_MAX_PIXELS);
+    }
+  },
 };
 export function flexalonGizmos(): Gizmos2DShape | undefined {
   return runtimeGizmos() ? stableGizmos : undefined;

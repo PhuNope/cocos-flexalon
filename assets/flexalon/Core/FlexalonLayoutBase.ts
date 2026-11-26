@@ -41,7 +41,7 @@ export function calculateFitScale(natural: Vec3, baseline: Vec3, width: number, 
 @executeInEditMode
 @requireComponent(FlexalonObject)
 export class LayoutBase extends FlexalonComponent implements Layout {
-    @property({tooltip: 'Hiển thị Gizmos khi chọn Node (cần extension Cocos-Gizmos v2).', visible: true})
+    @property({tooltip: 'Hiển thị Gizmos khi chọn Node (cần extension Cocos-Gizmos v3.0.3+).', visible: true})
     public showGizmos = true;
     @property({tooltip: 'Vẽ Content Bounds và Margin của từng child.', visible: true})
     public showChildBounds = false;

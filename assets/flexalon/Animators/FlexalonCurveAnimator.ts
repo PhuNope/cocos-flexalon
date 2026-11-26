@@ -22,7 +22,7 @@ export class FlexalonCurveAnimator extends FlexalonComponent {
     @property({tooltip:'Lặp từ Start Progress tới P3.',visible:true}) public loop=true;
     @property({tooltip:'Tạm dừng chuyển động trong Editor/Runtime.',visible:true}) public paused=false;
     @property({tooltip:'Chạy thử animation trong Scene Editor (mặc định tắt).',visible:true}) public previewInEditor=false;
-    @property({tooltip:'Hiện Gizmos khi chọn Node; cần Cocos-Gizmos v2.',visible:true}) public showGizmos=true;
+    @property({tooltip:'Hiện Gizmos khi chọn Node; cần Cocos-Gizmos v3.0.3+.',visible:true}) public showGizmos=true;
     @property({type:CCFloat,range:[0,1,0.01],slide:true,tooltip:'Marker tham khảo trên đường cong; không di chuyển Node.',visible:true}) public previewProgress=0;
 
     private timer=0;

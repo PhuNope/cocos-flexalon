@@ -118,10 +118,10 @@ Thay đổi danh sách file được đóng gói ở `scripts/release-manifest.c
 
 ## Nhánh dev — Gizmos trong Scene View
 
-Cài riêng [PhuNope/Cocos-Gizmos](https://github.com/PhuNope/Cocos-Gizmos) v2.0.0 trên Cocos Creator >=3.8.2.
+Cài riêng [PhuNope/Cocos-Gizmos](https://github.com/PhuNope/Cocos-Gizmos) v3.0.3 hoặc bản dev v3 mới hơn trên Cocos Creator >=3.8.2.
 Flexalon chỉ sử dụng kiểu TypeScript tương thích và gọi `globalThis.Gizmos2D` đã tồn tại.
 Không copy runtime Gizmos, không import Gizmos.js, không khai báo global trùng lặp.
-Nếu chưa cài Cocos-Gizmos, layout vẫn hoạt động nhưng không vẽ Gizmos.
+Nếu chưa cài Cocos-Gizmos, layout vẫn hoạt động nhưng không vẽ Gizmos. Adapter chỉ chạy trong Scene Editor (không chạy Preview/game), dùng cơ chế flush frame của v3 và giới hạn nhãn Grid ở 11–22 pixel màn hình.
 
 Chọn Node và bật **Show Gizmos** (tùy chọn **Show Child Bounds**) trong Custom Inspector.
 Màu cyan: bounds; xanh lá: padding; vàng: margin/vùng drop; hồng: Circle/Curve/Shape.
@@ -130,7 +130,7 @@ Node vẽ tạm của Gizmos không tham gia layout. Chưa hỗ trợ Circle XZ/
 
 ## Dev: sửa Gizmos lồng nhau và kéo thả
 
-- Cocos-Gizmos v2 được cài riêng; Flexalon gửi world-space points để vẽ đúng khi layout cha/con khác scale/rotation, không import runtime Gizmos lần thứ hai.
+- Cocos-Gizmos v3 được cài riêng; Flexalon gửi world-space points để vẽ đúng khi layout cha/con khác scale/rotation, không import runtime Gizmos lần thứ hai.
 - FlexalonInteractable bỏ qua layout khi kéo dù child không có FlexalonObject; có thể dùng hoặc không dùng Lerp Animator (Lerp sẽ tạm dừng trong khi kéo).
 - detachWhileDragging: chuyển tạm sang Canvas (tránh Mask/ScrollView clip), giữ world transform.
 - Drop lên node có FlexalonDragTarget để chuyển parent. Mặc định thả bên ngoài parent mà không có target sẽ giữ dưới Canvas; thả bên trong/Cancel trả về parent cũ.
