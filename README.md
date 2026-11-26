@@ -33,15 +33,34 @@ The script **does not delete any legacy source**: it backs up the old folder out
 
 - Fresh installation needs **no migration** and no command line.
 
-## Install directly from Git
+## Install directly from Git (source build)
 
-Clone from your Cocos project root (no build or npm install is required just to use the checked-in Editor output):
+Clone from your Cocos project root, then install the extension's locked dependencies (Node 18+):
 
 ```bash
 git clone https://github.com/PhuNope/cocos-flexalon.git extensions/flexalon-tools
+npm --prefix extensions/flexalon-tools ci --include=dev
 ```
 
-Enable the extension in Creator as above. Git does not execute build commands on a normal clone: the committed `dist/` is generated from `src/` so all Editor entry points and Guide/Inspector resources are already available. For development, enter the extension directory and run `npm ci` (or `npm install`) to install the pinned compiler and automatically rebuild via postinstall. `npm run build` remains available for manual rebuilds. Commit the regenerated `dist/` alongside source changes; Dev QA checks for drift. The compiler is isolated from ancestor project @types. Release ZIPs already include the build and do not need npm install.
+If Flexalon is already registered in the parent project's `.gitmodules`, restore the pinned submodule instead of cloning it as a separate repository:
+
+```bash
+git submodule update --init --recursive -- extensions/flexalon-tools
+npm --prefix extensions/flexalon-tools ci --include=dev
+```
+
+Git does not execute repository-defined build scripts on an ordinary clone or submodule update. To automate setup for the whole Cocos project, add the following script to the **parent project's** package.json (merge with any existing scripts rather than replacing them):
+
+```json
+{
+  "scripts": {
+    "setup:flexalon": "git submodule update --init --recursive -- extensions/flexalon-tools && npm --prefix extensions/flexalon-tools ci --include=dev",
+    "postinstall": "npm run setup:flexalon"
+  }
+}
+```
+
+Then run `npm install` (or `npm ci` if the parent has a lockfile) from the parent after cloning. The extension's postinstall builds `dist/` locally; never commit generated `dist/` or `node_modules/`. Enable/reload in Creator after the build succeeds. For manual rebuilds run `npm run build` in the extension. The compiler is isolated from ancestor project @types. Release ZIPs remain prebuilt and require no npm install.
 
 ## Maintainers
 
@@ -69,7 +88,7 @@ Produces `release/flexalon-tools-v0.5.11.zip` with one top-level `flexalon-tools
 Pushing the matching tag (`git tag v0.5.11 && git push origin v0.5.11`) triggers the workflow. It runs `npm ci`, `npm run release`, verifies the ZIP, and creates/updates the corresponding GitHub Release using `GITHUB_TOKEN`. Use GitHub Actions manual dispatch to publish an **existing** tag. Tag version must equal `v` + package version.
 
 
-**Note:** Pushing a new package version to `main` runs the release workflow, which verifies the ZIP, creates the matching tag if needed and publishes the GitHub Release. Pushes to `dev` produce QA artifacts only. Matching tag pushes and manual dispatch with an existing tag are also supported. The repository includes generated `dist/` for clone-ready use; the workflow still rebuilds it from `src/` before packaging.
+**Note:** Pushing a new package version to `main` runs the release workflow, which verifies the ZIP, creates the matching tag if needed and publishes the GitHub Release. Pushes to `dev` produce QA artifacts only. Matching tag pushes and manual dispatch with an existing tag are also supported. Generated `dist/` is ignored by Git and built from `src/` by npm postinstall or the packaging workflow.
 
 ## Cocos-Gizmos v3 — Scene visualization
 

@@ -22,17 +22,34 @@ Ví dụ import từ mã dự án:
 import { FlexalonGridLayout } from 'db://flexalon-tools/flexalon/Layouts/FlexalonGridLayout';
 ```
 
-## Cài bằng Git clone (không cần build thủ công)
+## Cài từ Git / Git submodule (tự build khi npm ci)
 
-Tại thư mục project Cocos Creator:
+Yêu cầu Node.js 18+. Tại thư mục project Cocos Creator, nếu chưa dùng submodule:
 
 ```bash
 git clone https://github.com/PhuNope/cocos-flexalon.git extensions/flexalon-tools
+npm --prefix extensions/flexalon-tools ci --include=dev
 ```
 
-Sau đó bật/reload extension trong Creator. Git không tự chạy lệnh build khi clone thông thường; repo có sẵn `dist/` được sinh từ `src/`, nên clone xong dùng ngay, không cần npm install.
+Nếu đã khai báo Flexalon trong `.gitmodules`, kể cả khi xóa thư mục extension, khôi phục đúng commit được project cha lưu bằng:
 
-Khi phát triển source, vào thư mục `extensions/flexalon-tools` và chạy `npm ci` hoặc `npm install`: npm tự chạy postinstall để build khi compiler dev đã được cài. Muốn build lại thủ công dùng `npm run build`. Commit cả `dist/` đã sinh khi sửa source Editor; Dev QA kiểm tra file build không bị lệch. TypeScript của extension không tự nạp @types/node từ project cha. Bản ZIP release đã build sẵn, không cần npm install.
+```bash
+git submodule update --init --recursive -- extensions/flexalon-tools
+npm --prefix extensions/flexalon-tools ci --include=dev
+```
+
+Không cần clone riêng vào thư mục submodule. Git chỉ tải source, không tự thực thi lệnh build khi clone hoặc update submodule. Để tự động khôi phục submodule và build mỗi khi cài dependencies của project cha, thêm scripts sau vào `package.json` **của project Cocos cha** (giữ lại scripts đang có, nối với postinstall cũ nếu cần):
+
+```json
+{
+  "scripts": {
+    "setup:flexalon": "git submodule update --init --recursive -- extensions/flexalon-tools && npm --prefix extensions/flexalon-tools ci --include=dev",
+    "postinstall": "npm run setup:flexalon"
+  }
+}
+```
+
+Sau khi clone project cha, chạy `npm install` (hoặc `npm ci` nếu có lockfile). Postinstall của extension tự sinh `dist/` từ source; không commit `dist/` và `node_modules/`. Bật/reload extension trong Creator khi build thành công. Muốn build thủ công dùng `npm run build` trong extension. TypeScript của extension không tự nạp @types/node từ project cha. Bản ZIP release vẫn có mã đã build, không cần npm install.
 
 ## Scale To Fit: một tùy chọn dùng chung (v0.5.10)
 

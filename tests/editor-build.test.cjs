@@ -24,8 +24,8 @@ try {
   assert.equal(result.status, 0, result.stdout + result.stderr);
   for (const relative of ['main.js', 'scene.js', 'panels/guide.js']) {
     const actual = fs.readFileSync(path.join(extension, 'dist', relative));
-    const checkedIn = fs.readFileSync(path.join(root, 'dist', relative));
-    assert.deepEqual(actual, checkedIn, 'Generated output drift: ' + relative);
+    const locallyBuilt = fs.readFileSync(path.join(root, 'dist', relative));
+    assert.deepEqual(actual, locallyBuilt, 'Nested build differs from local build: ' + relative);
   }
   // Ensure module scoping did not change the CommonJS panel export contract.
   const module = { exports: {} };

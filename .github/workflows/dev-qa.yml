@@ -16,12 +16,17 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Verify clean source checkout
+        run: |
+          test ! -e dist
+          test -z "$(git ls-files dist/)"
       - name: Install development dependencies and auto-build
-        run: npm ci
-      - name: Verify postinstall generated tracked Editor output
+        run: npm ci --include=dev
+      - name: Verify postinstall generated Editor output
         run: |
           test -f dist/main.js && test -f dist/scene.js && test -f dist/panels/guide.js
-          git diff --exit-code -- dist/
+          test -f dist/contributions/inspector/shared.js
+          test -f dist/panels/guide/index.html
           test -z "$(git status --porcelain --untracked-files=all -- dist/)"
       - name: Build, behavioral tests and ZIP integrity
         run: npm run release
@@ -32,3 +37,28 @@ jobs:
           path: release/flexalon-tools-v*.zip
           if-no-files-found: error
           retention-days: 14
+
+  windows-submodule-style-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: project/extensions/flexalon-tools
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: project/extensions/flexalon-tools/package-lock.json
+      - name: Auto-build from a nested extension path
+        working-directory: project
+        shell: pwsh
+        run: |
+          if (Test-Path extensions/flexalon-tools/dist) { throw "dist must not be checked in" }
+          npm --prefix extensions/flexalon-tools ci --include=dev
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($file in @("main.js", "scene.js", "panels/guide.js", "contributions/inspector/shared.js", "panels/guide/index.html")) {
+            if (!(Test-Path "extensions/flexalon-tools/dist/$file")) { throw "Missing generated file: $file" }
+          }
+      - name: Verify nested build and regression tests
+        working-directory: project/extensions/flexalon-tools
+        run: npm run verify
