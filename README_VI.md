@@ -1,4 +1,4 @@
-# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.10
+# Flexalon Cocos Creator 3.8.2+ — Unified Extension v0.5.11
 
 Đây là **một extension duy nhất**, bao gồm:
 
@@ -114,9 +114,9 @@ npm run release:files
 
 Thay đổi danh sách file được đóng gói ở `scripts/release-manifest.cjs`. Cơ chế này dùng allowlist, không đóng gói cả thư mục `src` hoặc `scripts` một cách tùy tiện.
 
-**Khi nào workflow chạy?** Push branch (`git push origin main`) **không** tạo Release; chỉ push Git tag `v*` trùng `package.json.version` hoặc chạy workflow thủ công với tag hợp lệ mới build và đăng ZIP lên GitHub Release. Tag đã phát hành trước đó không nên ghi đè. Tăng version và tạo tag mới cho bản tiếp theo.
+**Khi nào workflow chạy?** Push version mới lên `main` sẽ build, kiểm tra ZIP, tự tạo tag tương ứng và đăng GitHub Release. Push `dev` chỉ tạo artifact QA. Push tag `v*` trùng `package.json.version` hoặc chạy workflow thủ công với tag đã tồn tại cũng được hỗ trợ. Không ghi đè tag đã phát hành.
 
-## Nhánh dev — Gizmos trong Scene View
+## Cocos-Gizmos v3 — Gizmos trong Scene View
 
 Cài riêng [PhuNope/Cocos-Gizmos](https://github.com/PhuNope/Cocos-Gizmos) v3.0.3 hoặc bản dev v3 mới hơn trên Cocos Creator >=3.8.2.
 Flexalon chỉ sử dụng kiểu TypeScript tương thích và gọi `globalThis.Gizmos2D` đã tồn tại.
@@ -126,7 +126,7 @@ Nếu chưa cài Cocos-Gizmos, layout vẫn hoạt động nhưng không vẽ Gi
 Chọn Node và bật **Show Gizmos** (tùy chọn **Show Child Bounds**) trong Custom Inspector.
 Màu cyan: bounds; xanh lá: padding; vàng: margin/vùng drop; hồng: Circle/Curve/Shape.
 Node vẽ tạm của Gizmos không tham gia layout. Chưa hỗ trợ Circle XZ/ZY và kéo handle.
-**Chỉ phát triển trên dev; không merge main, không tạo tag hoặc Release khi chưa chốt.**
+**Tích hợp Gizmos v3 được phát hành từ Flexalon v0.5.11 sau khi bản dev được kiểm thử và duyệt.**
 
 ## Dev: sửa Gizmos lồng nhau và kéo thả
 

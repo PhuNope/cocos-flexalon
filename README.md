@@ -1,4 +1,4 @@
-# Flexalon Unified Extension v0.5.10 — Cocos Creator >= 3.8.2
+# Flexalon Unified Extension v0.5.11 — Cocos Creator >= 3.8.2
 
 **One extension, everything included.** The package carries all 43 runtime TypeScript files, 18 Custom Inspectors, the Guide Panel, and an offline HTML guide.
 
@@ -54,14 +54,14 @@ npm run release
 npm run release:check
 ```
 
-Produces `release/flexalon-tools-v0.5.2.zip` with one top-level `flexalon-tools/` folder. **Minimal installer allowlist**: only runtime `.ts/.meta`, compiled JS/HTML/CSS needed by Editor/Inspector/Guide, `package.json`, panel icon, `README_VI.md`, and optional legacy migrator plus its migration instructions. Source `src/`, TypeScript build dependencies, lockfile, tsconfig, workflow, tests, offline HTML and screenshot previews are excluded. The illustrated Guide Panel stays fully functional. Run `npm run release:files` to inspect every included path; edit `scripts/release-manifest.cjs` to change the allowlist. `npm run release` rebuilds and checks the package, creates ZIP, and verifies its CRC/decompression against disk files. `release:check` can be run again separately.
+Produces `release/flexalon-tools-v0.5.11.zip` with one top-level `flexalon-tools/` folder. **Minimal installer allowlist**: only runtime `.ts/.meta`, compiled JS/HTML/CSS needed by Editor/Inspector/Guide, `package.json`, panel icon, `README_VI.md`, and optional legacy migrator plus its migration instructions. Source `src/`, TypeScript build dependencies, lockfile, tsconfig, workflow, tests, offline HTML and screenshot previews are excluded. The illustrated Guide Panel stays fully functional. Run `npm run release:files` to inspect every included path; edit `scripts/release-manifest.cjs` to change the allowlist. `npm run release` rebuilds and checks the package, creates ZIP, and verifies its CRC/decompression against disk files. `release:check` can be run again separately.
 
-Pushing the matching tag (`git tag v0.5.2 && git push origin v0.5.2`) triggers the workflow. It runs `npm ci`, `npm run release`, verifies the ZIP, and creates/updates the corresponding GitHub Release using `GITHUB_TOKEN`. Use GitHub Actions manual dispatch to publish an **existing** tag. Tag version must equal `v` + package version.
+Pushing the matching tag (`git tag v0.5.11 && git push origin v0.5.11`) triggers the workflow. It runs `npm ci`, `npm run release`, verifies the ZIP, and creates/updates the corresponding GitHub Release using `GITHUB_TOKEN`. Use GitHub Actions manual dispatch to publish an **existing** tag. Tag version must equal `v` + package version.
 
 
-**Note:** Ordinary branch pushes do not publish ZIPs. Only matching `v*` tags or manual workflow dispatch publish a GitHub Release. Repo source can omit `dist/` (ignored); the workflow builds it from `src/` before packaging.
+**Note:** Pushing a new package version to `main` runs the release workflow, which verifies the ZIP, creates the matching tag if needed and publishes the GitHub Release. Pushes to `dev` produce QA artifacts only. Matching tag pushes and manual dispatch with an existing tag are also supported. Repo source can omit `dist/` (ignored); the workflow builds it from `src/` before packaging.
 
-## Development branch — Cocos-Gizmos Scene visualization
+## Cocos-Gizmos v3 — Scene visualization
 
 Install [PhuNope/Cocos-Gizmos](https://github.com/PhuNope/Cocos-Gizmos) v3.0.3 or a newer v3 build separately (Cocos Creator >=3.8.2).
 Flexalon uses only structural TypeScript types and `globalThis.Gizmos2D` at runtime.
@@ -71,7 +71,7 @@ Without Cocos-Gizmos enabled, Flexalon keeps working without visuals. The adapte
 Select a Node and enable **Show Gizmos** (optionally **Show Child Bounds**). Cyan: bounds;
 green: padding; yellow: margin/drop zone; pink: circle/curve/shape guides. Circle
 XZ/ZY and draggable handles are not implemented yet. Temporary Gizmos nodes are
-excluded from layout measurement. **Keep these changes on dev until approved.**
+excluded from layout measurement. The v3 migration is included in v0.5.11.
 
 
 ## Stable v0.5.5: Flexalon Auto Updater

@@ -2,6 +2,21 @@
 
 Những thay đổi đáng chú ý của các bản phát hành ổn định.
 
+## v0.5.11 — 2026-11-26
+
+**Hỗ trợ:** Cocos Creator >= 3.8.2  
+**Nâng cấp từ:** v0.5.10
+
+### Tương thích Cocos-Gizmos v3
+
+- Cập nhật adapter theo SDK Cocos-Gizmos v3.0.3 và nhánh v3: đồng bộ world-space, vòng đời flush renderer, dọn anchor theo selection và nhãn Grid giới hạn 11–22 pixel màn hình.
+- Giữ một runtime Gizmos cài riêng; không có phụ thuộc cứng. Chỉ gọi SDK trong Scene Editor, không chạy Preview/game.
+- Không thay đổi thuật toán layout, dữ liệu serialized hoặc UUID component.
+- Bổ sung regression test vào Dev QA và kiểm tra đóng gói. Dev QA bản migration đã pass, người dùng đã xác nhận kiểm thử bản dev thành công.
+- Xem [Release Notes](docs/releases/v0.5.11.md).
+
+---
+
 ## v0.5.10 — 2026-11-09
 
 **Phát hành:** 09/11/2026
